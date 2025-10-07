@@ -186,14 +186,31 @@ class DeckController extends Controller
     /**
      * Affichage d’un deck.
      */
-    public function show(Deck $deck)
-    {
-        abort_if($deck->user_id !== auth()->id(), 403);
+public function show(Deck $deck)
+{
+    $authUser = Auth::user();
 
-        $cards = $deck->cards()->withPivot('quantity')->get();
+    // 🔹 Vérifie si l’utilisateur connecté est le propriétaire
+    $isOwner = $deck->user_id === $authUser->id;
 
-        return view('decks.show', compact('deck', 'cards'));
+    // 🔹 Vérifie s’il suit le propriétaire du deck
+    $isFollowing = $authUser->following()
+        ->where('followed_id', $deck->user_id)
+        ->exists();
+
+    // 🚫 Si ce n’est ni le propriétaire ni un suiveur → accès refusé
+    if (!$isOwner && !$isFollowing) {
+        abort(403, 'Vous n’êtes pas autorisé à consulter ce deck.');
     }
+
+    // ✅ Récupère les cartes liées au deck (avec quantité)
+    $cards = $deck->cards()->withPivot('quantity')->get();
+
+    // 🔹 Passe un flag à la vue pour gérer lecture seule
+    $readOnly = !$isOwner;
+
+    return view('decks.show', compact('deck', 'cards', 'readOnly'));
+}
 
     /**
      * Suppression d’un deck.

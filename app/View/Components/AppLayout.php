@@ -8,10 +8,10 @@ use Illuminate\View\View;
 class AppLayout extends Component
 {
     /**
-     * Get the view / contents that represents the component.
+     * Rendre la vue du composant.
      */
     public function render(): View
     {
-        return view('layouts.app');
+        return view('components.app-layout');
     }
 }

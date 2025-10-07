@@ -26,6 +26,23 @@
                     <x-nav-link :href="route('decks.index')" :active="request()->routeIs('decks.*')">
                         {{ __('Mes Decks') }}
                     </x-nav-link>
+
+                    <!-- 👥 Rechercher des utilisateurs -->
+                    <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')">
+                        {{ __('Recherche Amis') }}
+                    </x-nav-link>
+
+                    <!-- 🤝 Mes abonnements -->
+                    <x-nav-link :href="route('users.following')" :active="request()->routeIs('users.following')">
+                        {{ __('Mes abonnements') }}
+                    </x-nav-link>
+
+                    <!-- 👀 Mes abonnés (optionnel) -->
+                    @if(Route::has('users.followers'))
+                        <x-nav-link :href="route('users.followers')" :active="request()->routeIs('users.followers')">
+                            {{ __('Mes abonnés') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -95,6 +112,23 @@
             <x-responsive-nav-link :href="route('decks.index')" :active="request()->routeIs('decks.*')">
                 {{ __('Mes Decks') }}
             </x-responsive-nav-link>
+
+            <!-- 👥 Rechercher -->
+            <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')">
+                {{ __('Rechercher') }}
+            </x-responsive-nav-link>
+
+            <!-- 🤝 Mes abonnements -->
+            <x-responsive-nav-link :href="route('users.following')" :active="request()->routeIs('users.following')">
+                {{ __('Mes abonnements') }}
+            </x-responsive-nav-link>
+
+            <!-- 👀 Mes abonnés (optionnel) -->
+            @if(Route::has('users.followers'))
+                <x-responsive-nav-link :href="route('users.followers')" :active="request()->routeIs('users.followers')">
+                    {{ __('Mes abonnés') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
     </div>
 </nav>
