@@ -53,4 +53,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Card::class);
     }
+
+    /**
+     * Relation : un utilisateur possède plusieurs decks.
+     */
+    public function decks()
+    {
+        return $this->hasMany(Deck::class);
+    }
 }
