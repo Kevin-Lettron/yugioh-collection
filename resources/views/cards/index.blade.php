@@ -102,6 +102,7 @@
                                         <th class="px-4 py-2 border border-gray-300 text-left w-1/12">DEF</th>
                                         <th class="px-4 py-2 border border-gray-300 text-left w-2/12">Rareté</th>
                                         <th class="px-4 py-2 border border-gray-300 text-left w-1/12">Prix (€)</th>
+                                        <th class="px-4 py-2 border border-gray-300 text-left w-1/12">Exemplaires</th>
                                         <th class="px-4 py-2 border border-gray-300 text-center w-2/12">Actions</th>
                                     </tr>
                                 </thead>
@@ -117,6 +118,7 @@
                                             <td class="px-4 py-2 border border-gray-300">{{ $card->def ?? '-' }}</td>
                                             <td class="px-4 py-2 border border-gray-300">{{ $card->rarity ?? '-' }}</td>
                                             <td class="px-4 py-2 border border-gray-300">{{ $card->price ? number_format($card->price, 2, ',', ' ') : '-' }}</td>
+                                            <td class="px-4 py-2 border border-gray-300 text-center">{{ $card->nm_exemplaire }}</td>
                                             <td class="px-4 py-2 border border-gray-300 text-center whitespace-nowrap">
                                                 <div class="flex justify-center gap-2">
                                                     <a href="{{ route('cards.edit', $card) }}"
