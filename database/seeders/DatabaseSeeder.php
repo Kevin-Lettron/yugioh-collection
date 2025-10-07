@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -13,11 +12,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Création d’un utilisateur de test avec tes identifiants
+        $user = User::factory()->create([
+            'name' => 'keito',
+            'email' => 'kevinlettron@outlook.fr',
+            'password' => bcrypt('K4llMinight4080.'), // mot de passe fourni
         ]);
+
+        // On exécute le seeder des cartes
+        $this->call(CardSeeder::class);
     }
 }

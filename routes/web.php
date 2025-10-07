@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DeckController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -10,6 +12,17 @@ use App\Http\Controllers\ProfileController;
 |--------------------------------------------------------------------------
 */
 
+// deck
+Route::middleware(['auth'])->group(function () {
+    Route::resource('decks', DeckController::class);
+});
+
+Route::resource('decks', DeckController::class);
+
+//selction de carte collection pour le deck
+Route::middleware(['auth'])->group(function () {
+    Route::resource('decks', DeckController::class);
+});
 // 🔸 Page d'accueil
 Route::get('/', function () {
     if (auth()->check()) {
