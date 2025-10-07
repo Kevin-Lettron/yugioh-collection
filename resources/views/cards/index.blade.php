@@ -140,6 +140,24 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- ✅ Pagination FR + espacée -->
+                        <div class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <!-- Texte pagination -->
+                            <div class="text-gray-600 text-sm">
+                                @php
+                                    $from = $cards->firstItem();
+                                    $to = $cards->lastItem();
+                                    $total = $cards->total();
+                                @endphp
+                                Affichage de {{ $from }} à {{ $to }} sur {{ $total }} résultat{{ $total > 1 ? 's' : '' }}
+                            </div>
+
+                            <!-- Liens de pagination -->
+                            <div class="flex justify-center">
+                                {{ $cards->onEachSide(1)->links('pagination::tailwind') }}
+                            </div>
+                        </div>
                     @endif
                 </div>
             </div>

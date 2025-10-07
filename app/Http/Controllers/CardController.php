@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 class CardController extends Controller
 {
     /**
-     * Affiche la collection de l'utilisateur connecté.
+     * Affiche la collection de l'utilisateur connecté avec pagination (20 cartes par page)
      */
     public function index(Request $request)
     {
@@ -37,7 +37,7 @@ class CardController extends Controller
             ->when($def, fn($query) => $query->where('def', '>=', $def))
             ->when($rarity, fn($query) => $query->where('rarity', $rarity))
             ->latest()
-            ->get();
+            ->paginate(20); // ✅ 20 cartes par page
 
         return view('cards.index', compact('cards'));
     }
@@ -89,10 +89,8 @@ class CardController extends Controller
                         ->first();
 
             if ($card) {
-                // ✅ Incrémentation correcte pour l'utilisateur connecté
                 $card->increment('nm_exemplaire');
             } else {
-                // ✅ Création si nouvelle carte
                 $card = Card::create([
                     'ucard_id' => $card_id,
                     'set_code' => $set_code,
