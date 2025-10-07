@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CardController;
+use App\Http\Controllers\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,9 +24,15 @@ Route::middleware(['auth'])->group(function () {
         return redirect()->route('cards.index');
     })->name('dashboard');
 
+    // API interne pour la recherche de cartes
     Route::get('/api/card/{code}', [CardController::class, 'apiFindCard'])->name('api.card.find');
 
+    // CRUD complet sur les cartes
     Route::resource('cards', CardController::class);
+
+    // ✅ Gestion du mot de passe utilisateur
+    Route::get('/password/change', [ProfileController::class, 'editPassword'])->name('password.change');
+    Route::post('/password/change', [ProfileController::class, 'updatePassword'])->name('password.update');
 });
 
 // 🔸 Routes d’authentification Breeze

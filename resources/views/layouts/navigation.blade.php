@@ -12,9 +12,12 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('cards.index')" :active="request()->routeIs('cards.*')">
+                    <!-- ✅ Onglet "Ma Collection" -->
+                    <x-nav-link :href="route('cards.index')" :active="request()->routeIs('cards.index')">
                         {{ __('Ma Collection') }}
                     </x-nav-link>
+
+                    <!-- ✅ Onglet "Ajouter des cartes" -->
                     <x-nav-link :href="route('cards.create')" :active="request()->routeIs('cards.create')">
                         {{ __('Ajouter des cartes') }}
                     </x-nav-link>
@@ -37,6 +40,11 @@
                     </x-slot>
 
                     <x-slot name="content">
+                        <!-- ✅ Lien vers la page de changement de mot de passe -->
+                        <x-dropdown-link :href="route('password.change')">
+                            {{ __('Changer le mot de passe') }}
+                        </x-dropdown-link>
+
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -50,7 +58,7 @@
                 </x-dropdown>
             </div>
 
-            <!-- Hamburger -->
+            <!-- Hamburger (mobile) -->
             <div class="-me-2 flex items-center sm:hidden">
                 <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -65,7 +73,7 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('cards.index')" :active="request()->routeIs('cards.*')">
+            <x-responsive-nav-link :href="route('cards.index')" :active="request()->routeIs('cards.index')">
                 {{ __('Ma Collection') }}
             </x-responsive-nav-link>
 
@@ -82,6 +90,11 @@
             </div>
 
             <div class="mt-3 space-y-1">
+                <!-- ✅ Lien vers la page de changement de mot de passe (mobile) -->
+                <x-responsive-nav-link :href="route('password.change')">
+                    {{ __('Changer le mot de passe') }}
+                </x-responsive-nav-link>
+
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
