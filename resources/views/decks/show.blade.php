@@ -5,17 +5,34 @@
     <div class="max-w-screen-2xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
 
+            <!-- En-tête du deck -->
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h1 class="text-3xl font-bold">{{ $deck->name }}</h1>
                     <p class="text-gray-600">{{ $deck->description ?? 'Aucune description' }}</p>
                 </div>
 
-                <a href="{{ route('decks.edit', $deck) }}"
-                   class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-semibold transition">
-                    Modifier le deck
-                </a>
+                @if(!$readOnly)
+                    <a href="{{ route('decks.edit', $deck) }}"
+                       class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-semibold transition">
+                        ✏️ Modifier le deck
+                    </a>
+                @endif
             </div>
+
+            <!-- Message lecture seule -->
+            @if($readOnly)
+                <div class="mb-6 p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-md">
+                    ⚠️ Ce deck appartient à 
+                    <strong>
+                        <a href="{{ route('users.show', $deck->user) }}" 
+                           class="text-blue-600 hover:underline">
+                            {{ $deck->user->name }}
+                        </a>
+                    </strong>. 
+                    Vous le consultez en <strong>lecture seule</strong>.
+                </div>
+            @endif
 
             <div class="flex flex-col lg:flex-row gap-6">
                 <!-- Sidebar filtres -->
@@ -123,6 +140,13 @@
                         </div>
                     @endif
                 </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <a href="{{ route('decks.index') }}"
+                   class="text-blue-600 hover:underline font-semibold">
+                    ← Retour à mes decks
+                </a>
             </div>
         </div>
     </div>
