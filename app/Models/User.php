@@ -8,11 +8,10 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
+     * Les attributs modifiables en masse.
      *
      * @var list<string>
      */
@@ -20,10 +19,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'has_new_follower', // 👈 ajouté ici
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Les attributs cachés pour la sérialisation.
      *
      * @var list<string>
      */
@@ -33,7 +33,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be cast.
+     * Les attributs convertis automatiquement.
      *
      * @return array<string, string>
      */
@@ -42,54 +42,39 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'has_new_follower' => 'boolean', // 👈 important pour éviter un cast en string
         ];
     }
 
-    /**
-     * Relation : un utilisateur possède plusieurs cartes.
-     */
+    // 🔹 Relations
     public function cards()
     {
         return $this->hasMany(Card::class);
     }
 
-    /**
-     * Relation : un utilisateur possède plusieurs decks.
-     */
     public function decks()
     {
         return $this->hasMany(Deck::class);
     }
 
-    /**
-     * Relation : utilisateurs qui me suivent.
-     */
     public function followers()
     {
         return $this->belongsToMany(User::class, 'follows', 'followed_id', 'follower_id')
                     ->withTimestamps();
     }
 
-    /**
-     * Relation : utilisateurs que je suis.
-     */
     public function following()
     {
         return $this->belongsToMany(User::class, 'follows', 'follower_id', 'followed_id')
                     ->withTimestamps();
     }
 
-    /**
-     * Vérifie si l'utilisateur actuel suit un autre utilisateur.
-     */
+    // 🔹 Méthodes utilitaires
     public function isFollowing(User $user): bool
     {
         return $this->following->contains($user->id);
     }
 
-    /**
-     * Vérifie si un utilisateur est suivi par un autre.
-     */
     public function isFollowedBy(User $user): bool
     {
         return $this->followers->contains($user->id);

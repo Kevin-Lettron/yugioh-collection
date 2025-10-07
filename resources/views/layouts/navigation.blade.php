@@ -11,7 +11,7 @@
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex items-center">
                     <!-- ✅ Ma Collection -->
                     <x-nav-link :href="route('cards.index')" :active="request()->routeIs('cards.index')">
                         {{ __('Ma Collection') }}
@@ -37,11 +37,16 @@
                         {{ __('Mes abonnements') }}
                     </x-nav-link>
 
-                    <!-- 👀 Mes abonnés (optionnel) -->
+                    <!-- 👀 Mes abonnés (alignement corrigé + notification rouge) -->
                     @if(Route::has('users.followers'))
-                        <x-nav-link :href="route('users.followers')" :active="request()->routeIs('users.followers')">
-                            {{ __('Mes abonnés') }}
-                        </x-nav-link>
+                        <div class="relative flex items-center">
+                            <x-nav-link :href="route('users.followers')" :active="request()->routeIs('users.followers')" class="relative">
+                                {{ __('Mes abonnés') }}
+                                @if(Auth::user()->has_new_follower)
+                                    <span class="absolute -top-1 right-0 translate-x-4 w-2.5 h-2.5 bg-red-600 rounded-full animate-pulse"></span>
+                                @endif
+                            </x-nav-link>
+                        </div>
                     @endif
                 </div>
             </div>
@@ -98,36 +103,36 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <!-- ✅ Ma Collection -->
             <x-responsive-nav-link :href="route('cards.index')" :active="request()->routeIs('cards.index')">
                 {{ __('Ma Collection') }}
             </x-responsive-nav-link>
 
-            <!-- ✅ Ajouter des cartes -->
             <x-responsive-nav-link :href="route('cards.create')" :active="request()->routeIs('cards.create')">
                 {{ __('Ajouter des cartes') }}
             </x-responsive-nav-link>
 
-            <!-- ✅ Mes Decks -->
             <x-responsive-nav-link :href="route('decks.index')" :active="request()->routeIs('decks.*')">
                 {{ __('Mes Decks') }}
             </x-responsive-nav-link>
 
-            <!-- 👥 Rechercher -->
             <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')">
                 {{ __('Rechercher') }}
             </x-responsive-nav-link>
 
-            <!-- 🤝 Mes abonnements -->
             <x-responsive-nav-link :href="route('users.following')" :active="request()->routeIs('users.following')">
                 {{ __('Mes abonnements') }}
             </x-responsive-nav-link>
 
-            <!-- 👀 Mes abonnés (optionnel) -->
+            <!-- 👀 Mes abonnés (mobile avec notif alignée) -->
             @if(Route::has('users.followers'))
-                <x-responsive-nav-link :href="route('users.followers')" :active="request()->routeIs('users.followers')">
-                    {{ __('Mes abonnés') }}
-                </x-responsive-nav-link>
+                <div class="relative">
+                    <x-responsive-nav-link :href="route('users.followers')" :active="request()->routeIs('users.followers')" class="relative">
+                        {{ __('Mes abonnés') }}
+                        @if(Auth::user()->has_new_follower)
+                            <span class="absolute -top-1 right-0 translate-x-4 w-2.5 h-2.5 bg-red-600 rounded-full animate-pulse"></span>
+                        @endif
+                    </x-responsive-nav-link>
+                </div>
             @endif
         </div>
     </div>
