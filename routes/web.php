@@ -1,10 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DeckController;
-
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,49 +13,96 @@ use App\Http\Controllers\DeckController;
 |--------------------------------------------------------------------------
 */
 
-// deck
-Route::middleware(['auth'])->group(function () {
-    Route::resource('decks', DeckController::class);
-});
-
-Route::resource('decks', DeckController::class);
-
-//selction de carte collection pour le deck
-Route::middleware(['auth'])->group(function () {
-    Route::resource('decks', DeckController::class);
-});
 // 🔸 Page d'accueil
 Route::get('/', function () {
-    if (auth()->check()) {
-        return redirect()->route('cards.index');
-    }
-    return view('welcome');
+    return auth()->check()
+        ? redirect()->route('cards.index')
+        : view('welcome');
 })->name('home');
 
-// 🔸 Zone authentifiée
+// 🔸 Routes protégées par authentification
 Route::middleware(['auth'])->group(function () {
+
+    /*
+    |--------------------------------------------------------------------------
+    | DASHBOARD
+    |--------------------------------------------------------------------------
+    */
     Route::get('/dashboard', function () {
         return redirect()->route('cards.index');
     })->name('dashboard');
 
-    // API interne pour la recherche de cartes
-    Route::get('/api/card/{code}', [CardController::class, 'apiFindCard'])->name('api.card.find');
-
-    // CRUD complet sur les cartes
+    /*
+    |--------------------------------------------------------------------------
+    | CARTES
+    |--------------------------------------------------------------------------
+    */
     Route::resource('cards', CardController::class);
 
-    // ✅ Gestion du mot de passe utilisateur
-    Route::get('/password/change', [ProfileController::class, 'editPassword'])->name('password.change');
-    Route::post('/password/change', [ProfileController::class, 'updatePassword'])->name('password.update');
+    // API interne pour la recherche de cartes
+    Route::get('/api/card/{code}', [CardController::class, 'apiFindCard'])
+        ->name('api.card.find');
+
+    /*
+    |--------------------------------------------------------------------------
+    | DECKS
+    |--------------------------------------------------------------------------
+    */
+    Route::resource('decks', DeckController::class);
+
+    /*
+    |--------------------------------------------------------------------------
+    | PROFIL / MOT DE PASSE
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/password/change', [ProfileController::class, 'editPassword'])
+        ->name('password.change');
+    Route::post('/password/change', [ProfileController::class, 'updatePassword'])
+        ->name('password.update');
+
+    /*
+    |--------------------------------------------------------------------------
+    | UTILISATEURS (Système de suivi)
+    |--------------------------------------------------------------------------
+    */
+
+    // 🔍 Recherche d'utilisateurs
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+
+    // 👤 Affichage du profil public
+    Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+
+    // 📦 Collection d’un utilisateur
+    Route::get('/users/{user}/collection', [UserController::class, 'collection'])->name('users.collection');
+
+    // 🧩 Decks d’un utilisateur
+    Route::get('/users/{user}/decks', [UserController::class, 'decks'])->name('users.decks');
+
+    // ➕ Suivre un utilisateur
+    Route::post('/users/{user}/follow', [UserController::class, 'follow'])->name('users.follow');
+
+    // ➖ Ne plus suivre un utilisateur
+    Route::delete('/users/{user}/unfollow', [UserController::class, 'unfollow'])->name('users.unfollow');
+
+    // 👥 Liste des utilisateurs suivis (abonnements)
+    Route::get('/following', [UserController::class, 'following'])->name('users.following');
+
+    // 👀 Liste des abonnés
+    Route::get('/followers', [UserController::class, 'followers'])->name('users.followers');
 });
+
+/*
+|--------------------------------------------------------------------------
+| AUTHENTIFICATION
+|--------------------------------------------------------------------------
+*/
 
 // 🔸 Routes d’authentification Breeze
 require __DIR__ . '/auth.php';
 
 // 🔸 ✅ Redéfinition forcée de la route /login (vue combinée)
 Route::get('/login', function () {
-    if (auth()->check()) {
-        return redirect()->route('cards.index');
-    }
-    return view('auth.login-register');
+    return auth()->check()
+        ? redirect()->route('cards.index')
+        : view('auth.login-register');
 })->name('login');

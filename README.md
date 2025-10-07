@@ -1,61 +1,205 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🧙‍♂️ Yu-Gi-Oh! – Collection & Deck Builder (Laravel)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Application Laravel pour gérer une collection de cartes Yu-Gi-Oh! et construire des decks
+(quantités disponibles par utilisateur, filtres, recherche, pagination dynamique, authentification).
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 1) Prérequis (avec commandes d’installation)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Windows (Chocolatey)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```powershell
+choco install php composer nodejs-lts git sqlite -y
+```
 
-## Learning Laravel
+### macOS (Homebrew)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+```bash
+brew install php composer node git sqlite
+```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Ubuntu / Debian
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+sudo apt update
+sudo apt install -y php php-cli php-mbstring php-xml php-sqlite3 php-curl unzip \
+                    composer nodejs npm git sqlite3
+```
 
-## Laravel Sponsors
+**Versions requises** : PHP ≥ 8.2, Composer, Node.js ≥ 18, NPM, SQLite ou MySQL.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## 2) Installation des dépendances du projet
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+composer install
+npm install
+```
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 3) Fichier d’environnement `.env`
 
-## Code of Conduct
+Créez votre fichier :
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+cp .env.example .env
+```
 
-## Security Vulnerabilities
+Puis générez la clé de l’application :
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan key:generate
+```
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 4) Base de données
+
+### Option A – SQLite (recommandée)
+
+Modifiez `.env` :
+
+```env
+DB_CONNECTION=sqlite
+DB_DATABASE=${APP_PATH}/database/database.sqlite
+```
+
+Créez le fichier :
+
+```bash
+touch database/database.sqlite
+```
+
+### Option B – MySQL
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=yugioh_collection
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Créez la base :
+
+```sql
+CREATE DATABASE yugioh_collection CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+---
+
+## 5) Migration & liens de stockage
+
+```bash
+php artisan migrate
+php artisan storage:link
+```
+
+---
+
+## 6) Lancer les serveurs
+
+### Terminal 1 (Laravel)
+
+```bash
+php artisan serve
+```
+
+👉 [http://localhost:8000](http://localhost:8000)
+
+### Terminal 2 (Vite / Front-end)
+
+```bash
+npm run dev
+```
+
+> Pour un build de production :
+>
+> ```bash
+> npm run build
+> ```
+
+---
+
+## 7) Créer un compte utilisateur
+
+Ouvrez le site et cliquez sur **S’inscrire**.
+
+Sinon, en CLI :
+
+```bash
+php artisan tinker
+```
+
+```php
+\App\Models\User::create([
+  'name' => 'Admin',
+  'email' => 'admin@example.com',
+  'password' => bcrypt('password'),
+]);
+```
+
+---
+
+## 8) Commandes utiles
+
+```bash
+php artisan serve                # Lance le serveur Laravel
+npm run dev                      # Compile les assets (dev)
+npm run build                    # Compile les assets (prod)
+php artisan route:list           # Liste les routes
+php artisan optimize:clear       # Vide les caches
+php artisan migrate:fresh        # Réinitialise la base
+```
+
+---
+
+## 9) Fonctionnalités
+
+✅ Authentification complète (Breeze)
+✅ Gestion de collection par utilisateur
+✅ Filtres et recherche (type, niveau, ATK/DEF, rareté)
+✅ Création / édition de decks avec :
+
+* Quantité disponible = collection – cartes déjà utilisées
+* Pagination dynamique (10 cartes/page)
+* Conservation des quantités saisies entre filtres/pages
+  ✅ Validation 40–60 cartes / deck
+  ✅ Interface responsive (Tailwind + Vite)
+
+---
+
+## 10) Dépannage rapide
+
+| Problème                    | Cause               | Solution                                        |
+| --------------------------- | ------------------- | ----------------------------------------------- |
+| `419 Page Expired`          | Token CSRF invalide | Recharger la page, relancer `php artisan serve` |
+| `SQLSTATE[HY000]`           | Mauvaise config DB  | Vérifier `.env`, exécuter `php artisan migrate` |
+| Assets non chargés          | Vite non lancé      | `npm run dev`                                   |
+| Modifs non prises en compte | Cache Laravel       | `php artisan optimize:clear`                    |
+
+---
+
+## 11) Déploiement en production
+
+```bash
+npm run build
+php artisan migrate --force
+php artisan optimize
+```
+
+Configurer le serveur web pour pointer vers `public/`.
+
+---
+
+## 12) Licence
+
+Projet open source sous licence [MIT](https://opensource.org/licenses/MIT).
+
+---
+
+🎴 *Projet Laravel Yu-Gi-Oh! développé pour la gestion complète des cartes et decks, avec expérience util

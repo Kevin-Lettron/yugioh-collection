@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -34,7 +33,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
      * @return array<string, string>
      */
@@ -60,5 +59,39 @@ class User extends Authenticatable
     public function decks()
     {
         return $this->hasMany(Deck::class);
+    }
+
+    /**
+     * Relation : utilisateurs qui me suivent.
+     */
+    public function followers()
+    {
+        return $this->belongsToMany(User::class, 'follows', 'followed_id', 'follower_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Relation : utilisateurs que je suis.
+     */
+    public function following()
+    {
+        return $this->belongsToMany(User::class, 'follows', 'follower_id', 'followed_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Vérifie si l'utilisateur actuel suit un autre utilisateur.
+     */
+    public function isFollowing(User $user): bool
+    {
+        return $this->following->contains($user->id);
+    }
+
+    /**
+     * Vérifie si un utilisateur est suivi par un autre.
+     */
+    public function isFollowedBy(User $user): bool
+    {
+        return $this->followers->contains($user->id);
     }
 }
