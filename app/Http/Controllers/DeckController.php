@@ -107,19 +107,22 @@ class DeckController extends Controller
 
         $user = Auth::user();
 
-        // 🧮 Récupère toutes les cartes et calcule la quantité restante pour chaque
+        // 🧮 Récupère toutes les cartes avec quantité disponible
         $cards = $user->cards()->get()->map(function ($card) use ($deck, $user) {
             $usedInDeck = $deck->cards()->where('card_id', $card->id)->first()?->pivot->quantity ?? 0;
-
-            // Quantité dispo : total - utilisé dans les autres decks (en excluant celui-ci)
             $available = $card->availableQuantityForUser($user->id, $deck->id);
-
             $card->available_quantity = $available;
             $card->selected_quantity  = $usedInDeck;
             return $card;
         });
 
-        return view('decks.edit', compact('deck', 'cards'));
+        // 🧩 Récupère les cartes déjà dans le deck (pivot)
+        $deckCards = $deck->cards()
+            ->select('card_id', 'quantity')
+            ->get();
+
+        // 🔹 Passe tout à la vue
+        return view('decks.edit', compact('deck', 'cards', 'deckCards'));
     }
 
     /**
