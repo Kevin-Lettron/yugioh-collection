@@ -1,179 +1,175 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-7xl mx-auto py-10">
-    <h1 class="text-3xl font-bold mb-6">Créer un nouveau deck</h1>
+<div class="py-12">
+    <div class="max-w-screen-2xl mx-auto sm:px-6 lg:px-8">
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
 
-    <form id="deckForm" method="POST" action="{{ route('decks.store') }}">
-        @csrf
+            <h2 class="text-2xl font-bold mb-6">Créer un nouveau deck</h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-                <label for="name" class="block font-semibold mb-2">Nom du deck</label>
-                <input type="text" name="name" id="name" class="w-full border rounded px-4 py-2" required>
-            </div>
-            <div>
-                <label for="description" class="block font-semibold mb-2">Description</label>
-                <input type="text" name="description" id="description" class="w-full border rounded px-4 py-2">
-            </div>
+            <form action="{{ route('decks.store') }}" method="POST">
+                @csrf
+
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Sidebar des filtres -->
+                    <div class="w-full bg-gray-100 border border-gray-300 rounded-lg p-4">
+                        <h3 class="text-xl font-semibold mb-4">Filtres</h3>
+
+                        <!-- Type -->
+                        <div class="mb-4">
+                            <label for="type" class="block text-gray-700">Type de carte</label>
+                            <select name="type" id="type" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4">
+                                <option value="">Tous les types</option>
+                                <option value="Normal">Normal</option>
+                                <option value="Effect">Effect</option>
+                                <option value="Fusion">Fusion</option>
+                                <option value="Ritual">Ritual</option>
+                                <option value="Synchro">Synchro</option>
+                                <option value="XYZ">XYZ</option>
+                                <option value="Link">Link</option>
+                            </select>
+                        </div>
+
+                        <!-- Niveau -->
+                        <div class="mb-4">
+                            <label for="level" class="block text-gray-700">Rang de monstre</label>
+                            <input type="number" name="level" id="level" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4" placeholder="Niveau du monstre" />
+                        </div>
+
+                        <!-- ATK -->
+                        <div class="mb-4">
+                            <label for="atk" class="block text-gray-700">ATK minimum</label>
+                            <input type="number" name="atk" id="atk" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4" placeholder="ATK minimum" />
+                        </div>
+
+                        <!-- DEF -->
+                        <div class="mb-4">
+                            <label for="def" class="block text-gray-700">DEF minimum</label>
+                            <input type="number" name="def" id="def" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4" placeholder="DEF minimum" />
+                        </div>
+
+                        <!-- Rareté -->
+                        <div class="mb-4">
+                            <label for="rarity" class="block text-gray-700">Rareté</label>
+                            <select name="rarity" id="rarity" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4">
+                                <option value="">Toutes les raretés</option>
+                                <option value="Ultra Rare">Ultra Rare</option>
+                                <option value="Secret Rare">Secret Rare</option>
+                                <option value="Super Rare">Super Rare</option>
+                                <option value="Common">Common</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition w-full" style="background: #3ca5ff; border-radius: 50px;">
+                            Appliquer les filtres
+                        </button>
+                    </div>
+
+                    <!-- Contenu principal -->
+                    <div class="lg:col-span-3">
+                        <div class="mb-6">
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-gray-700 font-semibold">Nom du deck</label>
+                                    <input type="text" name="name" class="w-full border-gray-300 rounded-md py-2 px-4" required>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 font-semibold">Description</label>
+                                    <input type="text" name="description" class="w-full border-gray-300 rounded-md py-2 px-4">
+                                </div>
+                            </div>
+
+                            <!-- Barre de recherche -->
+                            <form action="{{ route('decks.create') }}" method="GET" class="mb-4">
+                                <div class="flex gap-2">
+                                    <input type="text" name="search" value="{{ request()->query('search') }}" placeholder="Rechercher une carte" class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4">
+                                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded transition">
+                                        Rechercher
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        @error('cards')
+                            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                                {{ $message }}
+                            </div>
+                        @enderror
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse border border-gray-300">
+                                <thead class="bg-gray-800 text-white">
+                                    <tr>
+                                        <th class="px-4 py-2">Nom</th>
+                                        <th class="px-4 py-2">Type</th>
+                                        <th class="px-4 py-2">Niveau</th>
+                                        <th class="px-4 py-2">ATK</th>
+                                        <th class="px-4 py-2">DEF</th>
+                                        <th class="px-4 py-2">Qté dispo</th>
+                                        <th class="px-4 py-2">Qté dans deck</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($cards as $card)
+                                        <tr class="hover:bg-gray-100">
+                                            <td class="px-4 py-2">{{ $card->name }}</td>
+                                            <td class="px-4 py-2">{{ $card->card_type }}</td>
+                                            <td class="px-4 py-2">{{ $card->level ?? '-' }}</td>
+                                            <td class="px-4 py-2">{{ $card->atk ?? '-' }}</td>
+                                            <td class="px-4 py-2">{{ $card->def ?? '-' }}</td>
+                                            <td class="px-4 py-2 font-semibold {{ $card->available_quantity > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                                {{ $card->available_quantity }}
+                                            </td>
+                                            <td class="px-4 py-2">
+                                                <input type="number" name="quantities[{{ $card->id }}]" min="0" max="{{ $card->available_quantity }}" value="0" class="w-16 border rounded px-2 py-1 text-center quantity-input" data-card-id="{{ $card->id }}">
+                                                <input type="hidden" name="cards[]" value="{{ $card->id }}">
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p class="mt-3 text-sm text-gray-700 text-right">
+                            Total sélectionné : <span id="selected-total">0</span> / 40–60
+                        </p>
+
+                        <div class="mt-6 text-right">
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                Enregistrer le deck
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
-
-        @if ($errors->any())
-            <div class="bg-red-100 text-red-700 p-4 rounded mb-4">
-                <ul class="list-disc list-inside">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-semibold">Sélectionne tes cartes</h2>
-            <div class="text-gray-700">
-                Total sélectionné : <span id="selectedCount" class="font-bold">0</span> / 40–60
-            </div>
-        </div>
-
-        <div class="overflow-x-auto border rounded-lg">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-gray-800 text-white">
-                    <tr>
-                        <th class="px-3 py-2">Nom</th>
-                        <th class="px-3 py-2">Type</th>
-                        <th class="px-3 py-2 text-center">Niveau</th>
-                        <th class="px-3 py-2 text-center">ATK</th>
-                        <th class="px-3 py-2 text-center">DEF</th>
-                        <th class="px-3 py-2 text-center">Qté dispo</th>
-                        <th class="px-3 py-2 text-center">Qté à ajouter</th>
-                        <th class="px-3 py-2 text-center">Ajouter</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($cards as $card)
-                        @php
-                            $maxAdd = min(3, $card->available_quantity);
-                            $disabled = $card->available_quantity <= 0;
-                        @endphp
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="px-3 py-2">{{ $card->name }}</td>
-                            <td class="px-3 py-2">{{ $card->card_type }}</td>
-                            <td class="text-center px-3 py-2">{{ $card->level ?? '-' }}</td>
-                            <td class="text-center px-3 py-2">{{ $card->atk ?? '-' }}</td>
-                            <td class="text-center px-3 py-2">{{ $card->def ?? '-' }}</td>
-                            <td class="text-center px-3 py-2 font-bold {{ $disabled ? 'text-red-600' : 'text-green-600' }}">
-                                {{ $card->available_quantity }}
-                            </td>
-                            <td class="text-center px-3 py-2">
-                                <input 
-                                    type="number"
-                                    name="quantities[{{ $card->id }}]"
-                                    value="{{ $disabled ? 0 : 1 }}"
-                                    min="{{ $disabled ? 0 : 1 }}"
-                                    max="{{ $maxAdd }}"
-                                    class="border rounded px-2 py-1 w-16 text-center quantity-input"
-                                    {{ $disabled ? 'disabled' : '' }}>
-                            </td>
-                            <td class="text-center px-3 py-2">
-                                <input 
-                                    type="checkbox"
-                                    class="card-checkbox"
-                                    name="cards[]"
-                                    value="{{ $card->id }}"
-                                    {{ $disabled ? 'disabled' : '' }}>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-
-        <div id="deckError" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mt-4"></div>
-
-        <div class="mt-6 text-right">
-            <button type="submit" id="submitButton" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded font-semibold">
-                Enregistrer le deck
-            </button>
-        </div>
-    </form>
+    </div>
 </div>
 
 <script>
-    // Sélection des éléments
-    const form = document.getElementById('deckForm');
-    const checkboxes = document.querySelectorAll('.card-checkbox');
-    const qtyInputs = document.querySelectorAll('.quantity-input');
-    const counter = document.getElementById('selectedCount');
-    const errorBox = document.getElementById('deckError');
-
-    function sanitizeQty(input) {
-        const min = parseInt(input.min || '0', 10);
-        const max = parseInt(input.max || '3', 10);
-        let v = parseInt(input.value || (min || 0), 10);
-        if (isNaN(v)) v = min || 0;
-        if (v < min) v = min;
-        if (v > max) v = max;
-        input.value = v;
-    }
+document.addEventListener('DOMContentLoaded', function () {
+    const quantityInputs = document.querySelectorAll('.quantity-input');
+    const totalSpan = document.getElementById('selected-total');
 
     function updateTotal() {
         let total = 0;
-        checkboxes.forEach(cb => {
-            if (cb.checked && !cb.disabled) {
-                const row = cb.closest('tr');
-                const input = row.querySelector('.quantity-input');
-                if (input && !input.disabled) {
-                    sanitizeQty(input);
-                    total += parseInt(input.value || '0', 10);
-                }
-            }
+        quantityInputs.forEach(input => {
+            total += parseInt(input.value) || 0;
         });
-        counter.textContent = total;
-        return total;
+        totalSpan.textContent = total;
     }
 
-    // Cohérence checkbox <-> quantité
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', () => {
-            const row = cb.closest('tr');
-            const input = row.querySelector('.quantity-input');
-            if (!input) return;
-
-            if (cb.checked) {
-                if (parseInt(input.value || '0', 10) === 0) {
-                    input.value = Math.max(1, parseInt(input.min || '1', 10));
-                }
-                input.disabled = false;
-            } else {
-                // On ne désactive pas l'input pour conserver la valeur, mais on le met à 0
-                input.value = 0;
-            }
+    quantityInputs.forEach(input => {
+        input.addEventListener('input', function () {
+            const max = parseInt(this.max);
+            let value = parseInt(this.value) || 0;
+            if (value < 0) this.value = 0;
+            if (value > max) this.value = max;
             updateTotal();
         });
     });
 
-    qtyInputs.forEach(input => {
-        input.addEventListener('input', () => {
-            sanitizeQty(input);
-            updateTotal();
-        });
-        // Init
-        sanitizeQty(input);
-    });
-
-    // Init compteur
     updateTotal();
-
-    form.addEventListener('submit', (e) => {
-        const total = updateTotal();
-        if (total < 40 || total > 60) {
-            e.preventDefault();
-            errorBox.textContent = 'Le deck doit contenir entre 40 et 60 cartes (sommes des quantités cochées).';
-            errorBox.classList.remove('hidden');
-            errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-            errorBox.classList.add('hidden');
-        }
-    });
+});
 </script>
 @endsection
