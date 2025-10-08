@@ -14,81 +14,170 @@
                 <div class="w-full bg-gray-100 border border-gray-300 rounded-lg p-4">
                     <h3 class="text-xl font-semibold mb-4">Filtres</h3>
 
-                    <div class="mb-4">
-                        <label class="block text-gray-700">Type de carte</label>
-                        <select id="filterType" class="w-full border-gray-300 rounded-md py-2 px-4">
-                            <option value="">Tous les types</option>
-                            <option value="Normal">Normal</option>
-                            <option value="Effect">Effect</option>
-                            <option value="Fusion">Fusion</option>
-                            <option value="Ritual">Ritual</option>
-                            <option value="Synchro">Synchro</option>
-                            <option value="XYZ">XYZ</option>
-                            <option value="Link">Link</option>
-                        </select>
-                    </div>
+                    @php
+                        // Types disponibles : ceux présents dans la collection de l'utilisateur
+                        $typeOptions = isset($availableTypes)
+                            ? $availableTypes
+                            : (isset($cards) ? $cards->pluck('card_type')->filter()->unique()->sort()->values() : collect());
 
-                    <div class="mb-4">
-                        <label class="block text-gray-700">Rang de monstre</label>
-                        <input type="number" id="filterLevel" placeholder="Niveau" class="w-full border-gray-300 rounded-md py-2 px-4" />
-                    </div>
+                        $rarities = [
+                            "Common", "Short Print", "Super Short Print", "Rare", "Super Rare",
+                            "Ultra Rare", "Secret Rare", "Parallel Rare", "Ultimate Rare",
+                            "Ghost Rare", "Gold Rare", "Premium Gold Rare", "Platinum Rare",
+                            "Prismatic Secret Rare", "Collector's Rare", "Starlight Rare",
+                            "Quarter Century Secret Rare", "Starfoil Rare", "Shatterfoil Rare",
+                            "Duel Terminal Normal Parallel Rare", "Duel Terminal Rare Parallel Rare",
+                            "Duel Terminal Super Parallel Rare", "Duel Terminal Ultra Parallel Rare",
+                            "Platinum Secret Rare", "Mosaic Rare", "10000 Secret Rare",
+                            "Ghost/Gold Rare", "Gold Secret Rare"
+                        ];
+                    @endphp
 
-                    <div class="mb-4">
-                        <label class="block text-gray-700">ATK minimum</label>
-                        <input type="number" id="filterAtk" placeholder="ATK min" class="w-full border-gray-300 rounded-md py-2 px-4" />
-                    </div>
+                    <form method="GET" action="{{ route('users.collection', $user) }}" class="space-y-4">
+                        <!-- Type -->
+                        <div>
+                            <label for="type" class="block text-gray-700">Type de carte</label>
+                            <select name="type" id="type" class="w-full border-gray-300 rounded-md py-2 px-4">
+                                <option value="">Tous les types</option>
+                                @foreach($typeOptions as $t)
+                                    <option value="{{ $t }}" {{ request('type') === $t ? 'selected' : '' }}>
+                                        {{ $t }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                    <div class="mb-4">
-                        <label class="block text-gray-700">DEF minimum</label>
-                        <input type="number" id="filterDef" placeholder="DEF min" class="w-full border-gray-300 rounded-md py-2 px-4" />
-                    </div>
+                        <!-- Niveau exact -->
+                        <div>
+                            <label for="level" class="block text-gray-700">Niveau exact</label>
+                            <input type="number" name="level" id="level" value="{{ request('level') }}"
+                                   class="w-full border-gray-300 rounded-md py-2 px-4" placeholder="ex : 4">
+                        </div>
 
-                    <div class="mb-4">
-                        <label class="block text-gray-700">Rareté</label>
-                        <select id="filterRarity" class="w-full border-gray-300 rounded-md py-2 px-4">
-                            <option value="">Toutes les raretés</option>
-                            <option value="Ultra Rare">Ultra Rare</option>
-                            <option value="Secret Rare">Secret Rare</option>
-                            <option value="Super Rare">Super Rare</option>
-                            <option value="Common">Common</option>
-                        </select>
-                    </div>
+                        <!-- ATK min -->
+                        <div>
+                            <label for="atk" class="block text-gray-700">ATK minimum</label>
+                            <input type="number" name="atk" id="atk" value="{{ request('atk') }}"
+                                   class="w-full border-gray-300 rounded-md py-2 px-4">
+                        </div>
 
-                    <button type="button" id="applyFilters" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded w-full transition">
-                        Appliquer les filtres
-                    </button>
+                        <!-- DEF min -->
+                        <div>
+                            <label for="def" class="block text-gray-700">DEF minimum</label>
+                            <input type="number" name="def" id="def" value="{{ request('def') }}"
+                                   class="w-full border-gray-300 rounded-md py-2 px-4">
+                        </div>
+
+                        <!-- Rareté -->
+                        <div>
+                            <label for="rarity" class="block text-gray-700">Rareté</label>
+                            <select name="rarity" id="rarity" class="w-full border-gray-300 rounded-md py-2 px-4">
+                                <option value="">Toutes les raretés</option>
+                                @foreach($rarities as $r)
+                                    <option value="{{ $r }}" {{ request('rarity') === $r ? 'selected' : '' }}>
+                                        {{ $r }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Boutons -->
+                        <div class="flex flex-col gap-2 mt-4">
+                            <button type="submit"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded w-full transition">
+                                Appliquer les filtres
+                            </button>
+
+                            <a href="{{ route('users.collection', $user) }}"
+                               class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded w-full text-center transition">
+                                Réinitialiser
+                            </a>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- TABLEAU DES CARTES -->
                 <div class="lg:col-span-3">
                     <!-- Recherche -->
                     <div class="mb-4">
-                        <div class="flex gap-2">
-                            <input type="text" id="searchInput" placeholder="Rechercher une carte..." class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4">
-                            <button type="button" id="searchButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded transition">Rechercher</button>
+                        <form method="GET" action="{{ route('users.collection', $user) }}" class="flex gap-2">
+                            <input type="text" name="search" value="{{ request('search') }}"
+                                   placeholder="Nom / Code / ucard_id..."
+                                   class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4">
+
+                            <!-- conserver les filtres actifs -->
+                            <input type="hidden" name="type" value="{{ request('type') }}">
+                            <input type="hidden" name="level" value="{{ request('level') }}">
+                            <input type="hidden" name="atk" value="{{ request('atk') }}">
+                            <input type="hidden" name="def" value="{{ request('def') }}">
+                            <input type="hidden" name="rarity" value="{{ request('rarity') }}">
+
+                            <button type="submit"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded transition">
+                                Rechercher
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Résumé -->
+                    <div class="flex items-center justify-between mb-3 text-sm text-gray-700">
+                        @php
+                            $from  = $cards->firstItem() ?? 0;
+                            $to    = $cards->lastItem() ?? 0;
+                            $total = $cards->total() ?? $cards->count();
+                            // somme des exemplaires si dispo
+                            $totalEx = collect($cards->items())->sum(fn($c) => (int)($c->nm_exemplaire ?? 0));
+                        @endphp
+                        <div>
+                            Affichage de {{ $from }} à {{ $to }} sur {{ $total }} résultat{{ $total > 1 ? 's' : '' }}
+                            @if($totalEx)
+                                — {{ $totalEx }} exemplaire{{ $totalEx > 1 ? 's' : '' }} sur cette page
+                            @endif
+                        </div>
+                        <div class="font-semibold">
+                            Total collection : {{ number_format($collectionCount ?? 0, 0, ',', ' ') }} carte(s)
                         </div>
                     </div>
 
                     <!-- Tableau -->
-                    <div class="overflow-x-auto">
-                        <table id="cardsTable" class="w-full border-collapse border border-gray-300">
+                    <div class="overflow-x-auto border border-gray-300 rounded-lg">
+                        <table class="w-full border-collapse border border-gray-300">
                             <thead class="bg-gray-800 text-white">
                                 <tr>
-                                    <th class="px-4 py-2">Nom</th>
-                                    <th class="px-4 py-2">Type</th>
-                                    <th class="px-4 py-2">Niveau</th>
-                                    <th class="px-4 py-2">ATK</th>
-                                    <th class="px-4 py-2">DEF</th>
-                                    <th class="px-4 py-2">Rareté</th>
-                                    <th class="px-4 py-2">Quantité possédée</th>
+                                    <th class="px-4 py-2 text-left">Nom</th>
+                                    <th class="px-4 py-2 text-left">Type</th>
+                                    <th class="px-4 py-2 text-left">Niveau</th>
+                                    <th class="px-4 py-2 text-left">ATK</th>
+                                    <th class="px-4 py-2 text-left">DEF</th>
+                                    <th class="px-4 py-2 text-left">Rareté</th>
+                                    <th class="px-4 py-2 text-center">Quantité</th>
                                 </tr>
                             </thead>
-                            <tbody id="cardsBody"></tbody>
+                            <tbody>
+                                @forelse($cards as $card)
+                                    <tr class="border-t hover:bg-gray-50">
+                                        <td class="px-4 py-2 font-semibold">{{ $card->name }}</td>
+                                        <td class="px-4 py-2">{{ $card->card_type ?? '-' }}</td>
+                                        <td class="px-4 py-2">{{ $card->level ?? '-' }}</td>
+                                        <td class="px-4 py-2">{{ $card->atk ?? '-' }}</td>
+                                        <td class="px-4 py-2">{{ $card->def ?? '-' }}</td>
+                                        <td class="px-4 py-2">{{ $card->rarity ?? '-' }}</td>
+                                        <td class="px-4 py-2 text-center">{{ (int)($card->nm_exemplaire ?? 0) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="7" class="px-4 py-6 text-center text-gray-600">
+                                            Aucune carte ne correspond à vos filtres.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
                         </table>
                     </div>
 
+                    <!-- Pagination -->
                     <div class="flex justify-center items-center mt-4">
-                        <div id="pagination" class="flex gap-2"></div>
+                        {{ $cards->onEachSide(1)->links('pagination::tailwind') }}
                     </div>
 
                     <div class="mt-6 text-center">
@@ -102,83 +191,4 @@
         </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const allCards = @json($cards);
-    const cardsPerPage = 10;
-    let currentPage = 1;
-    let filteredCards = [...allCards];
-
-    const tableBody = document.getElementById('cardsBody');
-    const pagination = document.getElementById('pagination');
-
-    // 🧮 Fonction d'affichage du tableau
-    function renderTable() {
-        tableBody.innerHTML = '';
-        const start = (currentPage - 1) * cardsPerPage;
-        const end = start + cardsPerPage;
-        const pageCards = filteredCards.slice(start, end);
-
-        pageCards.forEach(card => {
-            const row = document.createElement('tr');
-            row.classList.add('hover:bg-gray-100');
-            row.innerHTML = `
-                <td class="px-4 py-2 font-semibold">${card.name}</td>
-                <td class="px-4 py-2">${card.card_type}</td>
-                <td class="px-4 py-2">${card.level ?? '-'}</td>
-                <td class="px-4 py-2">${card.atk ?? '-'}</td>
-                <td class="px-4 py-2">${card.def ?? '-'}</td>
-                <td class="px-4 py-2">${card.rarity ?? '-'}</td>
-                <td class="px-4 py-2 text-center">${Number(card.nm_exemplaire ?? 0)}</td>`;
-            tableBody.appendChild(row);
-        });
-
-        renderPagination();
-    }
-
-    // 📜 Pagination
-    function renderPagination() {
-        pagination.innerHTML = '';
-        const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
-        for (let i = 1; i <= totalPages; i++) {
-            const btn = document.createElement('button');
-            btn.textContent = i;
-            btn.className = `px-3 py-1 border rounded ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-gray-200'}`;
-            btn.addEventListener('click', () => {
-                currentPage = i;
-                renderTable();
-            });
-            pagination.appendChild(btn);
-        }
-    }
-
-    // 🎯 Application des filtres
-    function applyFilters() {
-        const type = document.getElementById('filterType').value;
-        const level = parseInt(document.getElementById('filterLevel').value);
-        const atk = parseInt(document.getElementById('filterAtk').value);
-        const def = parseInt(document.getElementById('filterDef').value);
-        const rarity = document.getElementById('filterRarity').value;
-        const search = document.getElementById('searchInput').value.toLowerCase();
-
-        filteredCards = allCards.filter(c => {
-            return (!type || c.card_type === type)
-                && (!rarity || c.rarity === rarity)
-                && (!level || (c.level ?? 0) >= level)
-                && (!atk || (c.atk ?? 0) >= atk)
-                && (!def || (c.def ?? 0) >= def)
-                && (!search || c.name.toLowerCase().includes(search));
-        });
-
-        currentPage = 1;
-        renderTable();
-    }
-
-    document.getElementById('applyFilters').addEventListener('click', applyFilters);
-    document.getElementById('searchButton').addEventListener('click', applyFilters);
-
-    renderTable();
-});
-</script>
 @endsection

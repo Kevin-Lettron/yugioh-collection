@@ -4,132 +4,176 @@
 <div class="py-12">
     <div class="max-w-screen-2xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-            
             <div class="flex flex-col lg:flex-row gap-6">
+
                 <!-- Sidebar des filtres -->
                 <div class="w-full lg:w-1/4 p-4 bg-gray-100 border border-gray-300 rounded-lg">
                     <h3 class="text-xl font-semibold mb-4">Filtres</h3>
-                    <form action="{{ route('cards.index') }}" method="GET">
-                        <!-- Type de carte -->
-                        <div class="mb-4">
-                            <label for="type" class="block text-gray-700">Type de carte</label>
-                            <select name="type" id="type" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4">
-                                <option value="">Tous les types</option>
-                                <option value="Normal">Normal</option>
-                                <option value="Effect">Effect</option>
-                                <option value="Fusion">Fusion</option>
-                                <option value="Ritual">Ritual</option>
-                                <option value="Synchro">Synchro</option>
-                                <option value="XYZ">XYZ</option>
-                                <option value="Link">Link</option>
+
+                    @php
+                        // Types disponibles = injectés par le contrôleur
+                        $typeOptions = isset($availableTypes)
+                            ? $availableTypes
+                            : collect();
+
+                        // Liste de raretés commune
+                        $rarities = [
+                            "Common", "Short Print", "Super Short Print", "Rare", "Super Rare",
+                            "Ultra Rare", "Secret Rare", "Parallel Rare", "Ultimate Rare",
+                            "Ghost Rare", "Gold Rare", "Premium Gold Rare", "Platinum Rare",
+                            "Prismatic Secret Rare", "Collector's Rare", "Starlight Rare",
+                            "Quarter Century Secret Rare", "Starfoil Rare", "Shatterfoil Rare",
+                            "Duel Terminal Normal Parallel Rare", "Duel Terminal Rare Parallel Rare",
+                            "Duel Terminal Super Parallel Rare", "Duel Terminal Ultra Parallel Rare",
+                            "Platinum Secret Rare", "Mosaic Rare", "10000 Secret Rare",
+                            "Ghost/Gold Rare", "Gold Secret Rare"
+                        ];
+                    @endphp
+
+                    <form method="GET" action="{{ route('cards.index') }}" class="space-y-4">
+                        <!-- Type -->
+                        <div>
+                            <label for="type" class="block text-gray-700">Type</label>
+                            <select name="type" id="type" class="w-full border-gray-300 rounded-md py-2 px-3">
+                                <option value="">Tous</option>
+                                @foreach($typeOptions as $t)
+                                    <option value="{{ $t }}" {{ request('type') === $t ? 'selected' : '' }}>
+                                        {{ $t }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
 
-                        <!-- Rang de monstre -->
-                        <div class="mb-4">
-                            <label for="level" class="block text-gray-700">Rang de monstre</label>
-                            <input type="number" name="level" id="level" value="{{ request()->query('level') }}" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4" placeholder="Rang de monstre" />
+                        <!-- Niveau exact -->
+                        <div>
+                            <label for="level" class="block text-gray-700">Niveau exact</label>
+                            <input type="number" name="level" id="level" value="{{ request('level') }}"
+                                   class="w-full border-gray-300 rounded-md py-2 px-3" placeholder="ex : 4" />
                         </div>
 
-                        <!-- ATK -->
-                        <div class="mb-4">
-                            <label for="atk" class="block text-gray-700">ATK minimum</label>
-                            <input type="number" name="atk" id="atk" value="{{ request()->query('atk') }}" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4" placeholder="ATK minimum" />
+                        <!-- ATK min -->
+                        <div>
+                            <label for="atk" class="block text-gray-700">ATK min</label>
+                            <input type="number" name="atk" id="atk" value="{{ request('atk') }}"
+                                   class="w-full border-gray-300 rounded-md py-2 px-3" />
                         </div>
 
-                        <!-- DEF -->
-                        <div class="mb-4">
-                            <label for="def" class="block text-gray-700">DEF minimum</label>
-                            <input type="number" name="def" id="def" value="{{ request()->query('def') }}" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4" placeholder="DEF minimum" />
+                        <!-- DEF min -->
+                        <div>
+                            <label for="def" class="block text-gray-700">DEF min</label>
+                            <input type="number" name="def" id="def" value="{{ request('def') }}"
+                                   class="w-full border-gray-300 rounded-md py-2 px-3" />
                         </div>
 
                         <!-- Rareté -->
-                        <div class="mb-4">
+                        <div>
                             <label for="rarity" class="block text-gray-700">Rareté</label>
-                            <select name="rarity" id="rarity" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4">
-                                <option value="">Toutes les raretés</option>
-                                <option value="Ultra Rare">Ultra Rare</option>
-                                <option value="Secret Rare">Secret Rare</option>
-                                <option value="Super Rare">Super Rare</option>
-                                <option value="Common">Common</option>
+                            <select name="rarity" id="rarity" class="w-full border-gray-300 rounded-md py-2 px-3">
+                                <option value="">Toutes</option>
+                                @foreach($rarities as $r)
+                                    <option value="{{ $r }}" {{ request('rarity') === $r ? 'selected' : '' }}>
+                                        {{ $r }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
 
-                        <!-- Bouton de recherche -->
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition w-full" style="background: #3ca5ff; border-radius: 50px;">
-                            Appliquer les filtres
-                        </button>
+                        <!-- Boutons -->
+                        <div class="flex flex-col gap-2 mt-4">
+                            <button type="submit"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white w-full py-2 rounded transition">
+                                Appliquer les filtres
+                            </button>
+                            <a href="{{ route('cards.index') }}"
+                               class="bg-gray-300 hover:bg-gray-400 text-gray-800 w-full py-2 rounded text-center font-semibold transition">
+                                Réinitialiser
+                            </a>
+                        </div>
                     </form>
                 </div>
 
                 <!-- Liste des cartes -->
-                <div class="flex-1 p-4 bg-white border border-gray-200 rounded-lg overflow-x-visible">
-                    <h2 class="text-2xl font-bold mb-6">Ma collection de cartes Yu-Gi-Oh!</h2>
+                <div class="flex-1 p-4 bg-white border border-gray-200 rounded-lg">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                        <!-- Barre de recherche -->
+                        <form method="GET" action="{{ route('cards.index') }}" class="flex gap-2 w-full md:max-w-md">
+                            <input type="text" name="search" value="{{ request('search') }}"
+                                   placeholder="Nom / Code / ucard_id..."
+                                   class="flex-1 border-gray-300 rounded-md py-2 px-4" />
 
-                    <!-- Barre de recherche -->
-                    <div class="mb-4">
-                        <form action="{{ route('cards.index') }}" method="GET">
-                            <div class="flex gap-2">
-                                <input type="text" name="search" value="{{ request()->query('search') }}" placeholder="Rechercher par nom, ID ou série" class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4" />
-                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded transition">
-                                    Rechercher
-                                </button>
-                            </div>
+                            <!-- garder les filtres actifs -->
+                            <input type="hidden" name="type" value="{{ request('type') }}">
+                            <input type="hidden" name="level" value="{{ request('level') }}">
+                            <input type="hidden" name="atk" value="{{ request('atk') }}">
+                            <input type="hidden" name="def" value="{{ request('def') }}">
+                            <input type="hidden" name="rarity" value="{{ request('rarity') }}">
+
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                                Rechercher
+                            </button>
                         </form>
+
+                        <div class="text-gray-700 font-semibold">
+                            @php
+                                // Somme des exemplaires sur la page courante
+                                $totalEx = collect($cards->items())->sum(function($c){ return (int)($c->nm_exemplaire ?? 0); });
+                            @endphp
+                            {{ $totalEx ?: ($cards->total() ?? ($cards->count() ?? 0)) }} carte(s) dans la collection
+                        </div>
                     </div>
 
-                    <!-- Message de succès -->
-                    @if(session('success'))
-                        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                            {{ session('success') }}
-                        </div>
-                    @endif
-
-                    <!-- Liste des cartes -->
                     @if($cards->isEmpty())
-                        <p class="text-gray-600">Aucune carte enregistrée pour le moment.</p>
+                        <p class="text-gray-600">Aucune carte ne correspond à vos filtres.</p>
                     @else
-                        <div class="overflow-x-visible">
+                        <div class="overflow-x-auto border border-gray-300 rounded-lg">
                             <table class="w-full border-collapse border border-gray-300">
-                                <thead class="bg-gray-800 text-white">
+                                <thead class="bg-gray-800 text-white text-sm">
                                     <tr>
-                                        <th class="px-4 py-2 border border-gray-300 text-left w-1/12">ID</th>
-                                        <th class="px-4 py-2 border border-gray-300 text-left w-1/12">Série</th>
-                                        <th class="px-4 py-2 border border-gray-300 text-left w-2/12">Nom</th>
-                                        <th class="px-4 py-2 border border-gray-300 text-left w-2/12">Type</th>
-                                        <th class="px-4 py-2 border border-gray-300 text-left w-1/12">Level</th>
-                                        <th class="px-4 py-2 border border-gray-300 text-left w-1/12">ATK</th>
-                                        <th class="px-4 py-2 border border-gray-300 text-left w-1/12">DEF</th>
-                                        <th class="px-4 py-2 border border-gray-300 text-left w-2/12">Rareté</th>
-                                        <th class="px-4 py-2 border border-gray-300 text-left w-1/12">Prix (€)</th>
-                                        <th class="px-4 py-2 border border-gray-300 text-left w-1/12">Exemplaires</th>
-                                        <th class="px-4 py-2 border border-gray-300 text-center w-2/12">Actions</th>
+                                        <th class="px-3 py-2 text-left">uCard ID</th>
+                                        <th class="px-3 py-2 text-left">Set</th>
+                                        <th class="px-3 py-2 text-left">Nom</th>
+                                        <th class="px-3 py-2 text-left">Type</th>
+                                        <th class="px-3 py-2 text-left">Niveau</th>
+                                        <th class="px-3 py-2 text-left">ATK</th>
+                                        <th class="px-3 py-2 text-left">DEF</th>
+                                        <th class="px-3 py-2 text-left">Rareté</th>
+                                        <th class="px-3 py-2 text-left">Prix (€)</th>
+                                        <th class="px-3 py-2 text-center">Exemplaires</th>
+                                        <th class="px-3 py-2 text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($cards as $card)
-                                        <tr class="hover:bg-gray-100">
-                                            <td class="px-4 py-2 border border-gray-300">{{ $card->ucard_id }}</td>
-                                            <td class="px-4 py-2 border border-gray-300">{{ $card->set_code ?? '-' }}</td>
-                                            <td class="px-4 py-2 border border-gray-300">{{ $card->name }}</td>
-                                            <td class="px-4 py-2 border border-gray-300">{{ $card->card_type }}</td>
-                                            <td class="px-4 py-2 border border-gray-300">{{ $card->level ?? '-' }}</td>
-                                            <td class="px-4 py-2 border border-gray-300">{{ $card->atk ?? '-' }}</td>
-                                            <td class="px-4 py-2 border border-gray-300">{{ $card->def ?? '-' }}</td>
-                                            <td class="px-4 py-2 border border-gray-300">{{ $card->rarity ?? '-' }}</td>
-                                            <td class="px-4 py-2 border border-gray-300">{{ $card->price ? number_format($card->price, 2, ',', ' ') : '-' }}</td>
-                                            <td class="px-4 py-2 border border-gray-300 text-center">{{ $card->nm_exemplaire }}</td>
-                                            <td class="px-4 py-2 border border-gray-300 text-center whitespace-nowrap">
+                                        <tr class="border-t hover:bg-gray-50">
+                                            <td class="px-3 py-2">{{ $card->ucard_id }}</td>
+                                            <td class="px-3 py-2">{{ $card->set_code ?? '-' }}</td>
+                                            <td class="px-3 py-2">{{ $card->name }}</td>
+                                            <td class="px-3 py-2">{{ $card->card_type ?? '-' }}</td>
+                                            <td class="px-3 py-2">{{ $card->level ?? '-' }}</td>
+                                            <td class="px-3 py-2">{{ $card->atk ?? '-' }}</td>
+                                            <td class="px-3 py-2">{{ $card->def ?? '-' }}</td>
+                                            <td class="px-3 py-2">{{ $card->rarity ?? '-' }}</td>
+                                            <td class="px-3 py-2">
+                                                @if(isset($card->price) && $card->price !== null)
+                                                    {{ number_format($card->price, 2, ',', ' ') }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </td>
+                                            <td class="px-3 py-2 text-center font-semibold text-gray-800">
+                                                {{ $card->nm_exemplaire ?? '1' }}
+                                            </td>
+                                            <td class="px-3 py-2 text-center whitespace-nowrap">
                                                 <div class="flex justify-center gap-2">
                                                     <a href="{{ route('cards.edit', $card) }}"
-                                                       class="inline-block w-24 text-center bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 rounded text-sm transition">
+                                                       class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 px-3 rounded text-sm transition">
                                                         Modifier
                                                     </a>
                                                     <form action="{{ route('cards.destroy', $card) }}" method="POST" onsubmit="return confirm('Supprimer cette carte ?');">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit"
-                                                                class="inline-block w-24 text-center bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded text-sm transition">
+                                                                class="inline-block bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 px-3 rounded text-sm transition">
                                                             Supprimer
                                                         </button>
                                                     </form>
@@ -141,25 +185,23 @@
                             </table>
                         </div>
 
-                        <!-- ✅ Pagination FR + espacée -->
-                        <div class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-                            <!-- Texte pagination -->
-                            <div class="text-gray-600 text-sm">
+                        <!-- Pagination + résumé -->
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-4">
+                            <div class="text-sm text-gray-600">
                                 @php
-                                    $from = $cards->firstItem();
-                                    $to = $cards->lastItem();
-                                    $total = $cards->total();
+                                    $from  = $cards->firstItem() ?? 0;
+                                    $to    = $cards->lastItem() ?? 0;
+                                    $total = $cards->total() ?? $cards->count();
                                 @endphp
                                 Affichage de {{ $from }} à {{ $to }} sur {{ $total }} résultat{{ $total > 1 ? 's' : '' }}
                             </div>
-
-                            <!-- Liens de pagination -->
                             <div class="flex justify-center">
                                 {{ $cards->onEachSide(1)->links('pagination::tailwind') }}
                             </div>
                         </div>
                     @endif
                 </div>
+
             </div>
         </div>
     </div>
