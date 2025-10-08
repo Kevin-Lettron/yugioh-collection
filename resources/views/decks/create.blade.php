@@ -7,62 +7,115 @@
 
             <h2 class="text-2xl font-bold mb-6">Créer un nouveau deck</h2>
 
-            <form id="deckForm" action="{{ route('decks.store') }}" method="POST">
-                @csrf
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- ====== FILTRES (GET, formulaire indépendant) ====== -->
+                <div class="w-full bg-gray-100 border border-gray-300 rounded-lg p-4">
+                    <h3 class="text-xl font-semibold mb-4">Filtres</h3>
 
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    <!-- FILTRES -->
-                    <div class="w-full bg-gray-100 border border-gray-300 rounded-lg p-4">
-                        <h3 class="text-xl font-semibold mb-4">Filtres</h3>
+                    @php
+                        $typeOptions = isset($availableTypes) ? $availableTypes : collect();
+                        $rarities = [
+                            "Common","Short Print","Super Short Print","Rare","Super Rare",
+                            "Ultra Rare","Secret Rare","Parallel Rare","Ultimate Rare",
+                            "Ghost Rare","Gold Rare","Premium Gold Rare","Platinum Rare",
+                            "Prismatic Secret Rare","Collector's Rare","Starlight Rare",
+                            "Quarter Century Secret Rare","Starfoil Rare","Shatterfoil Rare",
+                            "Duel Terminal Normal Parallel Rare","Duel Terminal Rare Parallel Rare",
+                            "Duel Terminal Super Parallel Rare","Duel Terminal Ultra Parallel Rare",
+                            "Platinum Secret Rare","Mosaic Rare","10000 Secret Rare",
+                            "Ghost/Gold Rare","Gold Secret Rare"
+                        ];
+                    @endphp
 
-                        <div class="mb-4">
-                            <label class="block text-gray-700">Type de carte</label>
-                            <select id="filterType" class="w-full border-gray-300 rounded-md py-2 px-4">
+                    <form method="GET" action="{{ route('decks.create') }}" class="space-y-4" id="filtersForm">
+                        <!-- Type -->
+                        <div>
+                            <label for="type" class="block text-gray-700">Type de carte</label>
+                            <select name="type" id="type" class="w-full border-gray-300 rounded-md py-2 px-4">
                                 <option value="">Tous les types</option>
-                                <option value="Normal">Normal</option>
-                                <option value="Effect">Effect</option>
-                                <option value="Fusion">Fusion</option>
-                                <option value="Ritual">Ritual</option>
-                                <option value="Synchro">Synchro</option>
-                                <option value="XYZ">XYZ</option>
-                                <option value="Link">Link</option>
+                                @foreach($typeOptions as $t)
+                                    <option value="{{ $t }}" {{ request('type') === $t ? 'selected' : '' }}>
+                                        {{ $t }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="block text-gray-700">Rang de monstre</label>
-                            <input type="number" id="filterLevel" placeholder="Niveau" class="w-full border-gray-300 rounded-md py-2 px-4" />
+                        <!-- Niveau exact -->
+                        <div>
+                            <label for="level" class="block text-gray-700">Niveau exact</label>
+                            <input type="number" name="level" id="level" value="{{ request('level') }}"
+                                   class="w-full border-gray-300 rounded-md py-2 px-4" placeholder="ex : 4">
                         </div>
 
-                        <div class="mb-4">
-                            <label class="block text-gray-700">ATK minimum</label>
-                            <input type="number" id="filterAtk" placeholder="ATK min" class="w-full border-gray-300 rounded-md py-2 px-4" />
+                        <!-- ATK min -->
+                        <div>
+                            <label for="atk" class="block text-gray-700">ATK minimum</label>
+                            <input type="number" name="atk" id="atk" value="{{ request('atk') }}"
+                                   class="w-full border-gray-300 rounded-md py-2 px-4">
                         </div>
 
-                        <div class="mb-4">
-                            <label class="block text-gray-700">DEF minimum</label>
-                            <input type="number" id="filterDef" placeholder="DEF min" class="w-full border-gray-300 rounded-md py-2 px-4" />
+                        <!-- DEF min -->
+                        <div>
+                            <label for="def" class="block text-gray-700">DEF minimum</label>
+                            <input type="number" name="def" id="def" value="{{ request('def') }}"
+                                   class="w-full border-gray-300 rounded-md py-2 px-4">
                         </div>
 
-                        <div class="mb-4">
-                            <label class="block text-gray-700">Rareté</label>
-                            <select id="filterRarity" class="w-full border-gray-300 rounded-md py-2 px-4">
+                        <!-- Rareté -->
+                        <div>
+                            <label for="rarity" class="block text-gray-700">Rareté</label>
+                            <select name="rarity" id="rarity" class="w-full border-gray-300 rounded-md py-2 px-4">
                                 <option value="">Toutes les raretés</option>
-                                <option value="Ultra Rare">Ultra Rare</option>
-                                <option value="Secret Rare">Secret Rare</option>
-                                <option value="Super Rare">Super Rare</option>
-                                <option value="Common">Common</option>
+                                @foreach($rarities as $r)
+                                    <option value="{{ $r }}" {{ request('rarity') === $r ? 'selected' : '' }}>
+                                        {{ $r }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
 
-                        <button type="button" id="applyFilters" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded w-full transition">
-                            Appliquer les filtres
-                        </button>
+                        <!-- Boutons -->
+                        <div class="flex flex-col gap-2 mt-4">
+                            <button type="submit"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded w-full transition">
+                                Appliquer les filtres
+                            </button>
+                            <a href="{{ route('decks.create') }}"
+                               class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded w-full text-center transition">
+                                Réinitialiser
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ====== COLONNE PRINCIPALE ====== -->
+                <div class="lg:col-span-3">
+                    <!-- Recherche (GET, indépendante) -->
+                    <div class="mb-4">
+                        <form method="GET" action="{{ route('decks.create') }}" class="flex gap-2" id="searchForm">
+                            <input type="text" name="search" value="{{ request('search') }}"
+                                   placeholder="Rechercher par nom / code / ucard_id..."
+                                   class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4">
+
+                            <!-- conserver les filtres actifs -->
+                            <input type="hidden" name="type" value="{{ request('type') }}">
+                            <input type="hidden" name="level" value="{{ request('level') }}">
+                            <input type="hidden" name="atk" value="{{ request('atk') }}">
+                            <input type="hidden" name="def" value="{{ request('def') }}">
+                            <input type="hidden" name="rarity" value="{{ request('rarity') }}">
+
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded transition">
+                                Rechercher
+                            </button>
+                        </form>
                     </div>
 
-                    <!-- TABLEAU DES CARTES -->
-                    <div class="lg:col-span-3">
-                        <div class="grid grid-cols-2 gap-4 mb-4">
+                    <!-- ====== FORMULAIRE POST DE CRÉATION (seul formulaire POST) ====== -->
+                    <form id="deckForm" action="{{ route('decks.store') }}" method="POST">
+                        @csrf
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label class="block text-gray-700 font-semibold">Nom du deck</label>
                                 <input type="text" name="name" class="w-full border-gray-300 rounded-md py-2 px-4" required>
@@ -70,14 +123,6 @@
                             <div>
                                 <label class="block text-gray-700 font-semibold">Description</label>
                                 <input type="text" name="description" class="w-full border-gray-300 rounded-md py-2 px-4">
-                            </div>
-                        </div>
-
-                        <!-- Recherche -->
-                        <div class="mb-4">
-                            <div class="flex gap-2">
-                                <input type="text" id="searchInput" placeholder="Rechercher une carte..." class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-4">
-                                <button type="button" id="searchButton" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded transition">Rechercher</button>
                             </div>
                         </div>
 
@@ -92,13 +137,13 @@
                             <table id="cardsTable" class="w-full border-collapse border border-gray-300">
                                 <thead class="bg-gray-800 text-white">
                                     <tr>
-                                        <th class="px-4 py-2">Nom</th>
-                                        <th class="px-4 py-2">Type</th>
-                                        <th class="px-4 py-2">Niveau</th>
-                                        <th class="px-4 py-2">ATK</th>
-                                        <th class="px-4 py-2">DEF</th>
-                                        <th class="px-4 py-2">Qté dispo</th>
-                                        <th class="px-4 py-2">Qté dans deck</th>
+                                        <th class="px-4 py-2 text-left">Nom</th>
+                                        <th class="px-4 py-2 text-left">Type</th>
+                                        <th class="px-4 py-2 text-left">Niveau</th>
+                                        <th class="px-4 py-2 text-left">ATK</th>
+                                        <th class="px-4 py-2 text-left">DEF</th>
+                                        <th class="px-4 py-2 text-left">Qté dispo</th>
+                                        <th class="px-4 py-2 text-left">Qté dans deck</th>
                                     </tr>
                                 </thead>
                                 <tbody id="cardsBody"></tbody>
@@ -117,9 +162,9 @@
                                 Enregistrer le deck
                             </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
-            </form>
+            </div>
 
         </div>
     </div>
@@ -127,17 +172,17 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Cartes déjà FILTRÉES côté serveur suivant les paramètres GET
     const allCards = @json($cards);
-    const cardsPerPage = 10;
+    const cardsPerPage = 20;
     let currentPage = 1;
-    let filteredCards = [...allCards];
+    let filteredCards = [...allCards]; // pas de filtre côté client
     const selectedQuantities = {};
 
     const tableBody = document.getElementById('cardsBody');
     const totalSpan = document.getElementById('selected-total');
     const pagination = document.getElementById('pagination');
 
-    // 🧮 Fonction d'affichage du tableau
     function renderTable() {
         tableBody.innerHTML = '';
         const start = (currentPage - 1) * cardsPerPage;
@@ -146,19 +191,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
         pageCards.forEach(card => {
             const selected = selectedQuantities[card.id] ?? 0;
-
             const row = document.createElement('tr');
             row.classList.add('hover:bg-gray-100');
             row.innerHTML = `
                 <td class="px-4 py-2">${card.name}</td>
-                <td class="px-4 py-2">${card.card_type}</td>
+                <td class="px-4 py-2">${card.card_type ?? '-'}</td>
                 <td class="px-4 py-2">${card.level ?? '-'}</td>
                 <td class="px-4 py-2">${card.atk ?? '-'}</td>
                 <td class="px-4 py-2">${card.def ?? '-'}</td>
-                <td class="px-4 py-2 font-semibold ${card.available_quantity > 0 ? 'text-green-600' : 'text-red-600'}">${card.available_quantity}</td>
+                <td class="px-4 py-2 font-semibold ${Number(card.available_quantity || 0) > 0 ? 'text-green-600' : 'text-red-600'}">
+                    ${card.available_quantity ?? 0}
+                </td>
                 <td class="px-4 py-2">
-                    <input type="number" min="0" max="${card.available_quantity}" value="${selected}" data-card-id="${card.id}"
-                        class="w-16 border rounded px-2 py-1 text-center quantity-input">
+                    <input type="number" min="0" max="3" value="${selected}" data-card-id="${card.id}"
+                        class="w-16 border rounded px-2 py-1 text-center quantity-input"
+                        oninput="if (this.value > 3) this.value = 3;">
                 </td>`;
             tableBody.appendChild(row);
         });
@@ -167,10 +214,9 @@ document.addEventListener('DOMContentLoaded', function () {
         updateTotal();
     }
 
-    // 📜 Pagination
     function renderPagination() {
         pagination.innerHTML = '';
-        const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+        const totalPages = Math.ceil(filteredCards.length / cardsPerPage) || 1;
         for (let i = 1; i <= totalPages; i++) {
             const btn = document.createElement('button');
             btn.textContent = i;
@@ -183,29 +229,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // 🎯 Application des filtres
-    function applyFilters() {
-        const type = document.getElementById('filterType').value;
-        const level = parseInt(document.getElementById('filterLevel').value);
-        const atk = parseInt(document.getElementById('filterAtk').value);
-        const def = parseInt(document.getElementById('filterDef').value);
-        const rarity = document.getElementById('filterRarity').value;
-        const search = document.getElementById('searchInput').value.toLowerCase();
-
-        filteredCards = allCards.filter(c => {
-            return (!type || c.card_type === type)
-                && (!rarity || c.rarity === rarity)
-                && (!level || (c.level ?? 0) >= level)
-                && (!atk || (c.atk ?? 0) >= atk)
-                && (!def || (c.def ?? 0) >= def)
-                && (!search || c.name.toLowerCase().includes(search));
-        });
-
-        currentPage = 1;
-        renderTable();
-    }
-
-    // 🔢 Mise à jour du total sélectionné
     function updateTotal() {
         document.querySelectorAll('.quantity-input').forEach(input => {
             const id = input.dataset.cardId;
@@ -217,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function () {
         totalSpan.textContent = total;
     }
 
-    // 📦 Écoute les changements de quantité
+    // Règles min/max et total
     document.addEventListener('input', e => {
         if (e.target.classList.contains('quantity-input')) {
             const max = parseInt(e.target.max);
@@ -232,15 +255,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // 🔍 Actions sur recherche / filtres
-    document.getElementById('applyFilters').addEventListener('click', applyFilters);
-    document.getElementById('searchButton').addEventListener('click', applyFilters);
-
-    // 📨 Soumission avec conservation du CSRF
-    document.getElementById('deckForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        // 🔒 Ne pas supprimer le token CSRF
+    // Soumission : injecter cards[] et quantities[id] avant POST
+    document.getElementById('deckForm').addEventListener('submit', function() {
+        // Nettoyer d'anciens champs (au cas où)
         this.querySelectorAll('input[type="hidden"]:not([name="_token"])').forEach(i => i.remove());
 
         Object.entries(selectedQuantities).forEach(([id, qty]) => {
@@ -258,15 +275,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 this.appendChild(inputQty);
             }
         });
-
-        // ✅ Vérifie la présence du token CSRF
-        const token = document.querySelector('input[name="_token"]');
-        if (!token) {
-            alert("⚠️ Votre session a expiré. Rechargez la page.");
-            return;
-        }
-
-        this.submit();
     });
 
     renderTable();

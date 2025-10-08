@@ -82,16 +82,59 @@ class UserController extends Controller
     }
 
     /**
-     * 🧩 Affiche la collection publique d’un utilisateur.
+     * 🧩 Affiche la collection publique d’un utilisateur (avec filtres et pagination).
      */
-    public function collection(User $user)
+    public function collection(Request $request, User $user)
     {
-        $cards = $user->cards()
-            ->select('id', 'name', 'card_type', 'level', 'atk', 'def', 'rarity', 'nm_exemplaire')
-            ->latest()
-            ->paginate(10); // 🔹 Pagination dynamique
+        // ✅ Valider les filtres GET (mêmes règles que deck.show)
+        $validated = $request->validate([
+            'type'   => ['nullable', 'string', 'max:100'],          // card_type
+            'level'  => ['nullable', 'integer', 'min:0', 'max:12'], // niveau EXACT
+            'atk'    => ['nullable', 'integer', 'min:0', 'max:99999'], // min
+            'def'    => ['nullable', 'integer', 'min:0', 'max:99999'], // min
+            'rarity' => ['nullable', 'string', 'max:100'],
+            'search' => ['nullable', 'string', 'max:100'],          // name / set_code / ucard_id
+        ]);
 
-        return view('users.collection', compact('user', 'cards'));
+        // 🔁 Types réellement présents dans la collection (pour le select dynamique)
+        $availableTypes = $user->cards()
+            ->select('card_type')
+            ->whereNotNull('card_type')
+            ->distinct()
+            ->orderBy('card_type')
+            ->pluck('card_type');
+
+        // 🔎 Requête filtrée
+        $cardsQuery = $user->cards()
+            ->select('id', 'name', 'card_type', 'level', 'atk', 'def', 'rarity', 'nm_exemplaire', 'set_code', 'ucard_id')
+            ->when($validated['type'] ?? null,   fn($q, $v) => $q->where('card_type', $v))
+            ->when($validated['level'] ?? null,  fn($q, $v) => $q->where('level', $v))
+            ->when($validated['atk'] ?? null,    fn($q, $v) => $q->where('atk', '>=', $v))
+            ->when($validated['def'] ?? null,    fn($q, $v) => $q->where('def', '>=', $v))
+            ->when($validated['rarity'] ?? null, fn($q, $v) => $q->where('rarity', $v))
+            ->when($validated['search'] ?? null, function ($q, $term) {
+                $like = '%' . trim($term) . '%';
+                $q->where(function ($qq) use ($like) {
+                    $qq->where('name', 'LIKE', $like)
+                       ->orWhere('set_code', 'LIKE', $like)
+                       ->orWhere('ucard_id', 'LIKE', $like);
+                });
+            })
+            ->orderBy('name');
+
+        // 📊 Compteur global de cartes de la collection (optionnel dans l’entête)
+        $collectionCount = $user->cards()->count();
+
+        // 📄 Pagination + persistance des filtres
+        $cards = $cardsQuery->paginate(20)->appends($validated);
+
+        return view('users.collection', [
+            'user'            => $user,
+            'cards'           => $cards,            // LengthAwarePaginator -> firstItem/lastItem/total OK
+            'availableTypes'  => $availableTypes,
+            'collectionCount' => $collectionCount,
+            'filters'         => $validated,
+        ]);
     }
 
     /**
@@ -123,7 +166,7 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        // 🔵 Supprime le signal de nouvelle notification dès que l’utilisateur ouvre la page
+        // 🔵 On efface le flag "nouveau follower" dès l’ouverture
         if ($user->has_new_follower) {
             $user->update(['has_new_follower' => false]);
         }

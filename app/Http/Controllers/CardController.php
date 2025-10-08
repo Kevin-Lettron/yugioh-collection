@@ -12,34 +12,57 @@ use Illuminate\Support\Facades\Log;
 class CardController extends Controller
 {
     /**
-     * Affiche la collection de l'utilisateur connecté avec pagination (20 cartes par page)
+     * Affiche la collection de l'utilisateur connecté avec filtres + pagination.
      */
     public function index(Request $request)
     {
-        $search = $request->query('search');
-        $type = $request->query('type');
-        $level = $request->query('level');
-        $atk = $request->query('atk');
-        $def = $request->query('def');
-        $rarity = $request->query('rarity');
+        // Validation douce des filtres (mêmes règles que deck.show)
+        $validated = $request->validate([
+            'type'   => ['nullable','string','max:100'],          // card_type
+            'level'  => ['nullable','integer','min:0','max:12'],  // niveau EXACT
+            'atk'    => ['nullable','integer','min:0','max:99999'], // min
+            'def'    => ['nullable','integer','min:0','max:99999'], // min
+            'rarity' => ['nullable','string','max:100'],
+            'search' => ['nullable','string','max:100'],          // name / ucard_id / set_code
+        ]);
 
-        $cards = Auth::user()->cards()
-            ->when($search, function ($query) use ($search) {
-                return $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('ucard_id', 'like', "%{$search}%")
-                      ->orWhere('set_code', 'like', "%{$search}%");
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        // Types disponibles dans la collection (pour le select dynamique)
+        $availableTypes = $user->cards()
+            ->select('card_type')
+            ->whereNotNull('card_type')
+            ->distinct()
+            ->orderBy('card_type')
+            ->pluck('card_type');
+
+        // Requête filtrée
+        $cardsQuery = $user->cards()
+            ->select('id','ucard_id','set_code','name','card_type','level','atk','def','rarity','price','nm_exemplaire')
+            ->when($validated['search'] ?? null, function ($query, $search) {
+                $like = '%'.trim($search).'%';
+                $query->where(function ($q) use ($like) {
+                    $q->where('name', 'like', $like)
+                      ->orWhere('ucard_id', 'like', $like)
+                      ->orWhere('set_code', 'like', $like);
                 });
             })
-            ->when($type, fn($query) => $query->where('card_type', $type))
-            ->when($level, fn($query) => $query->where('level', $level))
-            ->when($atk, fn($query) => $query->where('atk', '>=', $atk))
-            ->when($def, fn($query) => $query->where('def', '>=', $def))
-            ->when($rarity, fn($query) => $query->where('rarity', $rarity))
-            ->latest()
-            ->paginate(20); // ✅ 20 cartes par page
+            ->when($validated['type'] ?? null,   fn($q, $v) => $q->where('card_type', $v))
+            ->when($validated['level'] ?? null,  fn($q, $v) => $q->where('level', $v))
+            ->when($validated['atk'] ?? null,    fn($q, $v) => $q->where('atk', '>=', $v))
+            ->when($validated['def'] ?? null,    fn($q, $v) => $q->where('def', '>=', $v))
+            ->when($validated['rarity'] ?? null, fn($q, $v) => $q->where('rarity', $v))
+            ->orderBy('name');
 
-        return view('cards.index', compact('cards'));
+        // Pagination + persistance des filtres
+        $cards = $cardsQuery->paginate(20)->appends($validated);
+
+        return view('cards.index', [
+            'cards'          => $cards,
+            'availableTypes' => $availableTypes,
+            'filters'        => $validated,
+        ]);
     }
 
     /**
@@ -92,19 +115,19 @@ class CardController extends Controller
                 $card->increment('nm_exemplaire');
             } else {
                 $card = Card::create([
-                    'ucard_id' => $card_id,
-                    'set_code' => $set_code,
-                    'code' => "{$card_id}-{$set_code}",
-                    'name' => $cardData['name'] ?? 'Inconnue',
-                    'card_type' => $cardData['type'] ?? 'Inconnu',
-                    'description' => $cardData['desc'] ?? '',
-                    'atk' => $cardData['atk'] ?? null,
-                    'def' => $cardData['def'] ?? null,
-                    'rarity' => $set['set_rarity'] ?? null,
-                    'price' => $set['set_price'] ?? null,
-                    'level' => $level,
-                    'user_id' => Auth::id(),
-                    'nm_exemplaire' => 1,
+                    'ucard_id'       => $card_id,
+                    'set_code'       => $set_code,
+                    'code'           => "{$card_id}-{$set_code}",
+                    'name'           => $cardData['name'] ?? 'Inconnue',
+                    'card_type'      => $cardData['type'] ?? 'Inconnu',
+                    'description'    => $cardData['desc'] ?? '',
+                    'atk'            => $cardData['atk'] ?? null,
+                    'def'            => $cardData['def'] ?? null,
+                    'rarity'         => $set['set_rarity'] ?? null,
+                    'price'          => $set['set_price'] ?? null,
+                    'level'          => $level,
+                    'user_id'        => Auth::id(),
+                    'nm_exemplaire'  => 1,
                 ]);
             }
 
@@ -138,15 +161,15 @@ class CardController extends Controller
         $set = $result['set'];
 
         return response()->json([
-            'name' => $card['name'] ?? 'Inconnue',
-            'type' => $card['type'] ?? 'Inconnu',
-            'atk' => $card['atk'] ?? null,
-            'def' => $card['def'] ?? null,
-            'rarity' => $set['set_rarity'] ?? null,
-            'price' => $set['set_price'] ?? null,
-            'image' => $card['card_images'][0]['image_url'] ?? null,
+            'name'        => $card['name'] ?? 'Inconnue',
+            'type'        => $card['type'] ?? 'Inconnu',
+            'atk'         => $card['atk'] ?? null,
+            'def'         => $card['def'] ?? null,
+            'rarity'      => $set['set_rarity'] ?? null,
+            'price'       => $set['set_price'] ?? null,
+            'image'       => $card['card_images'][0]['image_url'] ?? null,
             'description' => $card['desc'] ?? null,
-            'level' => $card['level'] ?? null,
+            'level'       => $card['level'] ?? null,
         ]);
     }
 
@@ -208,7 +231,7 @@ class CardController extends Controller
     public function update(Request $request, Card $card)
     {
         $validated = $request->validate([
-            'price' => 'nullable|numeric',
+            'price'         => 'nullable|numeric',
             'nm_exemplaire' => 'nullable|integer|min:1',
         ]);
 

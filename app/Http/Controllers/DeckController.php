@@ -26,20 +26,59 @@ class DeckController extends Controller
     }
 
     /**
-     * Formulaire de création d’un deck.
+     * Formulaire de création d’un deck (avec filtres GET persistants).
      */
-    public function create()
+    public function create(Request $request)
     {
         $user = Auth::user();
 
-        // 🧮 Calcule pour chaque carte : quantité totale - cartes utilisées dans d’autres decks
-        $cards = $user->cards()->get()->map(function ($card) use ($user) {
-            $card->available_quantity = $card->availableQuantityForUser($user->id);
-            $card->selected_quantity = 0;
-            return $card;
-        });
+        // 1) Valider les filtres GET
+        $validated = $request->validate([
+            'type'   => ['nullable','string','max:100'],            // card_type
+            'level'  => ['nullable','integer','min:0','max:12'],    // niveau EXACT
+            'atk'    => ['nullable','integer','min:0','max:99999'], // min
+            'def'    => ['nullable','integer','min:0','max:99999'], // min
+            'rarity' => ['nullable','string','max:100'],
+            'search' => ['nullable','string','max:100'],            // name / set_code / ucard_id
+        ]);
 
-        return view('decks.create', compact('cards'));
+        // 2) Types disponibles dans la collection (pour le select dynamique)
+        $availableTypes = $user->cards()
+            ->select('card_type')
+            ->whereNotNull('card_type')
+            ->distinct()
+            ->orderBy('card_type')
+            ->pluck('card_type');
+
+        // 3) Requête des cartes de la collection + filtres
+        $cards = $user->cards()
+            ->select(['id','name','card_type','level','atk','def','rarity','nm_exemplaire','set_code','ucard_id'])
+            ->when($validated['type'] ?? null,   fn($q, $v) => $q->where('card_type', $v))
+            ->when($validated['level'] ?? null,  fn($q, $v) => $q->where('level', $v))
+            ->when($validated['atk'] ?? null,    fn($q, $v) => $q->where('atk', '>=', $v))
+            ->when($validated['def'] ?? null,    fn($q, $v) => $q->where('def', '>=', $v))
+            ->when($validated['rarity'] ?? null, fn($q, $v) => $q->where('rarity', $v))
+            ->when($validated['search'] ?? null, function ($q, $term) {
+                $like = '%'.trim($term).'%';
+                $q->where(function ($qq) use ($like) {
+                    $qq->where('name', 'LIKE', $like)
+                       ->orWhere('set_code', 'LIKE', $like)
+                       ->orWhere('ucard_id', 'LIKE', $like);
+                });
+            })
+            ->orderBy('name')
+            ->get()
+            ->map(function ($card) use ($user) {
+                $card->available_quantity = $card->availableQuantityForUser($user->id);
+                $card->selected_quantity  = 0;
+                return $card;
+            });
+
+        return view('decks.create', [
+            'cards'          => $cards,           // déjà filtrées côté serveur
+            'availableTypes' => $availableTypes,  // pour le select "Type"
+            'filters'        => $validated,       // si tu veux t'en servir dans la vue
+        ]);
     }
 
     /**
@@ -57,32 +96,27 @@ class DeckController extends Controller
 
         $user = Auth::user();
 
-        // 🧮 Calcul du total réel de cartes (somme des quantités)
         $totalCards = 0;
         foreach ($validated['cards'] as $cardId) {
-            $qty = isset($validated['quantities'][$cardId]) ? (int)$validated['quantities'][$cardId] : 0;
+            $qty = (int) ($validated['quantities'][$cardId] ?? 0);
             $totalCards += $qty;
         }
 
-        // ✅ Validation du total
         if ($totalCards < 40 || $totalCards > 60) {
             return back()
                 ->withErrors(['cards' => 'Le deck doit contenir entre 40 et 60 cartes au total.'])
                 ->withInput();
         }
 
-        // ✅ Création du deck
         $deck = $user->decks()->create([
             'name'        => $validated['name'],
             'description' => $validated['description'] ?? null,
         ]);
 
-        // ✅ Attacher les cartes avec leur quantité
         foreach ($validated['cards'] as $cardId) {
             $card = Card::find($cardId);
             if (!$card) continue;
 
-            // Quantité réellement disponible (total - déjà utilisée ailleurs)
             $available = $card->availableQuantityForUser($user->id);
             $qty = min(3, $validated['quantities'][$cardId] ?? 1);
 
@@ -99,30 +133,78 @@ class DeckController extends Controller
     }
 
     /**
-     * Formulaire d’édition d’un deck.
+     * Formulaire d’édition d’un deck (avec filtres GET persistants).
      */
-    public function edit(Deck $deck)
+    public function edit(Request $request, Deck $deck)
     {
         abort_if($deck->user_id !== Auth::id(), 403);
-
         $user = Auth::user();
 
-        // 🧮 Récupère toutes les cartes avec quantité disponible
-        $cards = $user->cards()->get()->map(function ($card) use ($deck, $user) {
-            $usedInDeck = $deck->cards()->where('card_id', $card->id)->first()?->pivot->quantity ?? 0;
-            $available = $card->availableQuantityForUser($user->id, $deck->id);
-            $card->available_quantity = $available;
-            $card->selected_quantity  = $usedInDeck;
-            return $card;
-        });
+        // 1) Valider les filtres GET (mêmes règles que deck.show)
+        $validated = $request->validate([
+            'type'   => ['nullable','string','max:100'],           // card_type
+            'level'  => ['nullable','integer','min:0','max:12'],   // niveau EXACT
+            'atk'    => ['nullable','integer','min:0','max:99999'],// min
+            'def'    => ['nullable','integer','min:0','max:99999'],// min
+            'rarity' => ['nullable','string','max:100'],
+            'search' => ['nullable','string','max:100'],           // name / set_code / ucard_id
+        ]);
 
-        // 🧩 Récupère les cartes déjà dans le deck (pivot)
+        // 2) Types disponibles dans la collection du user (pour le select)
+        $availableTypes = $user->cards()
+            ->select('card_type')
+            ->whereNotNull('card_type')
+            ->distinct()
+            ->orderBy('card_type')
+            ->pluck('card_type');
+
+        // 3) Quantités déjà dans le deck (pour initialiser selected_quantity)
+        $deck->load(['cards' => function ($q) {
+            $q->select('cards.id', 'name');
+        }]);
+        $deckCardQuantities = $deck->cards->pluck('pivot.quantity', 'id'); // [card_id => qty]
+
+        // 4) Requête des cartes de la collection + filtres
+        $cards = $user->cards()
+            ->select(['id','name','card_type','level','atk','def','rarity','nm_exemplaire','set_code','ucard_id'])
+            ->when($validated['type'] ?? null,   fn($q, $v) => $q->where('card_type', $v))
+            ->when($validated['level'] ?? null,  fn($q, $v) => $q->where('level', $v))
+            ->when($validated['atk'] ?? null,    fn($q, $v) => $q->where('atk', '>=', $v))
+            ->when($validated['def'] ?? null,    fn($q, $v) => $q->where('def', '>=', $v))
+            ->when($validated['rarity'] ?? null, fn($q, $v) => $q->where('rarity', $v))
+            ->when($validated['search'] ?? null, function ($q, $term) {
+                $like = '%'.trim($term).'%';
+                $q->where(function ($qq) use ($like) {
+                    $qq->where('name', 'LIKE', $like)
+                       ->orWhere('set_code', 'LIKE', $like)
+                       ->orWhere('ucard_id', 'LIKE', $like);
+                });
+            })
+            ->orderBy('name')
+            ->get()
+            ->map(function ($card) use ($user, $deck, $deckCardQuantities) {
+                // Quantité déjà utilisée dans ce deck
+                $usedInDeck = (int) ($deckCardQuantities[$card->id] ?? 0);
+                // Quantité dispo = méthode maison qui tient compte du deck courant
+                $available = $card->availableQuantityForUser($user->id, $deck->id);
+
+                $card->available_quantity = $available;
+                $card->selected_quantity  = $usedInDeck;
+                return $card;
+            });
+
+        // 5) Ancien format (compat) : couple [card_id => quantity] du deck
         $deckCards = $deck->cards()
             ->select('card_id', 'quantity')
             ->get();
 
-        // 🔹 Passe tout à la vue
-        return view('decks.edit', compact('deck', 'cards', 'deckCards'));
+        return view('decks.edit', [
+            'deck'           => $deck,
+            'cards'          => $cards,           // déjà filtrées côté serveur
+            'deckCards'      => $deckCards,
+            'availableTypes' => $availableTypes,
+            'filters'        => $validated,
+        ]);
     }
 
     /**
@@ -140,28 +222,25 @@ class DeckController extends Controller
 
         $user = Auth::user();
 
-        // 🧮 Calcul du total réel
         $totalCards = 0;
         foreach ($validated['cards'] as $cardId) {
-            $qty = isset($validated['quantities'][$cardId]) ? (int)$validated['quantities'][$cardId] : 0;
+            $qty = (int) ($validated['quantities'][$cardId] ?? 0);
             $totalCards += $qty;
         }
 
-        // ✅ Validation du total
         if ($totalCards < 40 || $totalCards > 60) {
             return back()
                 ->withErrors(['cards' => 'Le deck doit contenir entre 40 et 60 cartes au total.'])
                 ->withInput();
         }
 
-        // ✅ Synchronisation des cartes
         $syncData = [];
         foreach ($validated['cards'] as $cardId) {
             $card = Card::find($cardId);
             if (!$card) continue;
 
-            $available = $card->availableQuantityForUser($user->id, $deck->id);
-            $qty = min(3, $validated['quantities'][$cardId] ?? 1);
+            $available  = $card->availableQuantityForUser($user->id, $deck->id);
+            $qty        = min(3, $validated['quantities'][$cardId] ?? 1);
             $usedInDeck = $deck->cards()->where('card_id', $cardId)->first()?->pivot->quantity ?? 0;
 
             if ($qty > $available + $usedInDeck) {
@@ -184,33 +263,51 @@ class DeckController extends Controller
     }
 
     /**
-     * Affichage d’un deck.
+     * Affichage d’un deck avec filtres.
      */
-public function show(Deck $deck)
-{
-    $authUser = Auth::user();
+    public function show(Request $request, Deck $deck)
+    {
+        $authUser = Auth::user();
 
-    // 🔹 Vérifie si l’utilisateur connecté est le propriétaire
-    $isOwner = $deck->user_id === $authUser->id;
+        $isOwner = $deck->user_id === $authUser->id;
+        $isFollowing = $authUser->following()
+            ->where('followed_id', $deck->user_id)
+            ->exists();
 
-    // 🔹 Vérifie s’il suit le propriétaire du deck
-    $isFollowing = $authUser->following()
-        ->where('followed_id', $deck->user_id)
-        ->exists();
+        if (!$isOwner && !$isFollowing) {
+            abort(403, 'Vous n’êtes pas autorisé à consulter ce deck.');
+        }
 
-    // 🚫 Si ce n’est ni le propriétaire ni un suiveur → accès refusé
-    if (!$isOwner && !$isFollowing) {
-        abort(403, 'Vous n’êtes pas autorisé à consulter ce deck.');
+        // ✅ Liste des types réellement présents dans le deck (valeurs sûres)
+        $typeOptions = $deck->cards()
+            ->select('cards.card_type')
+            ->distinct()
+            ->orderBy('cards.card_type')
+            ->pluck('cards.card_type');
+
+        // ✅ Requête avec filtres – niveau exact (=)
+        $cards = $deck->cards()
+            ->withPivot('quantity')
+            ->when($request->filled('type'), fn($q) => $q->where('cards.card_type', $request->type))
+            ->when($request->filled('level'), fn($q) => $q->where('cards.level', (int) $request->level))
+            ->when($request->filled('atk'), fn($q) => $q->where('cards.atk', '>=', (int) $request->atk))
+            ->when($request->filled('def'), fn($q) => $q->where('cards.def', '>=', (int) $request->def))
+            ->when($request->filled('rarity'), fn($q) => $q->where('cards.rarity', $request->rarity))
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $s = $request->search;
+                $q->where(function ($sub) use ($s) {
+                    $sub->where('cards.name', 'like', "%{$s}%")
+                        ->orWhere('cards.ucard_id', 'like', "%{$s}%")
+                        ->orWhere('cards.set_code', 'like', "%{$s}%");
+                });
+            })
+            ->orderBy('cards.name')
+            ->get();
+
+        $readOnly = !$isOwner;
+
+        return view('decks.show', compact('deck', 'cards', 'readOnly', 'typeOptions'));
     }
-
-    // ✅ Récupère les cartes liées au deck (avec quantité)
-    $cards = $deck->cards()->withPivot('quantity')->get();
-
-    // 🔹 Passe un flag à la vue pour gérer lecture seule
-    $readOnly = !$isOwner;
-
-    return view('decks.show', compact('deck', 'cards', 'readOnly'));
-}
 
     /**
      * Suppression d’un deck.

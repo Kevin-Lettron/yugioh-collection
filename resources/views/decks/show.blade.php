@@ -35,66 +35,107 @@
             @endif
 
             <div class="flex flex-col lg:flex-row gap-6">
+
                 <!-- Sidebar filtres -->
                 <div class="w-full lg:w-1/4 p-4 bg-gray-100 border border-gray-300 rounded-lg">
                     <h3 class="text-xl font-semibold mb-4">Filtres</h3>
-                    <form method="GET" class="space-y-4">
+
+                    @php
+                        // Types disponibles = ceux présents dans le deck
+                        $typeOptions = isset($typeOptions)
+                            ? $typeOptions
+                            : $cards->pluck('card_type')->filter()->unique()->sort()->values();
+                    @endphp
+
+                    <form method="GET" action="{{ route('decks.show', $deck) }}" class="space-y-4">
+                        <!-- Type -->
                         <div>
                             <label for="type" class="block text-gray-700">Type</label>
                             <select name="type" id="type" class="w-full border-gray-300 rounded-md py-2 px-3">
                                 <option value="">Tous</option>
-                                <option value="Normal" {{ request('type')=='Normal' ? 'selected' : '' }}>Normal</option>
-                                <option value="Effect" {{ request('type')=='Effect' ? 'selected' : '' }}>Effect</option>
-                                <option value="Fusion" {{ request('type')=='Fusion' ? 'selected' : '' }}>Fusion</option>
-                                <option value="Ritual" {{ request('type')=='Ritual' ? 'selected' : '' }}>Ritual</option>
-                                <option value="Synchro" {{ request('type')=='Synchro' ? 'selected' : '' }}>Synchro</option>
-                                <option value="XYZ" {{ request('type')=='XYZ' ? 'selected' : '' }}>XYZ</option>
-                                <option value="Link" {{ request('type')=='Link' ? 'selected' : '' }}>Link</option>
+                                @foreach($typeOptions as $t)
+                                    <option value="{{ $t }}" {{ request('type') === $t ? 'selected' : '' }}>
+                                        {{ $t }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
 
+                        <!-- Niveau -->
                         <div>
-                            <label for="level" class="block text-gray-700">Niveau</label>
+                            <label for="level" class="block text-gray-700">Niveau exact</label>
                             <input type="number" name="level" id="level" value="{{ request('level') }}"
-                                class="w-full border-gray-300 rounded-md py-2 px-3">
+                                class="w-full border-gray-300 rounded-md py-2 px-3" placeholder="ex : 4">
                         </div>
 
+                        <!-- ATK -->
                         <div>
                             <label for="atk" class="block text-gray-700">ATK min</label>
                             <input type="number" name="atk" id="atk" value="{{ request('atk') }}"
                                 class="w-full border-gray-300 rounded-md py-2 px-3">
                         </div>
 
+                        <!-- DEF -->
                         <div>
                             <label for="def" class="block text-gray-700">DEF min</label>
                             <input type="number" name="def" id="def" value="{{ request('def') }}"
                                 class="w-full border-gray-300 rounded-md py-2 px-3">
                         </div>
 
+                        <!-- Rareté -->
                         <div>
                             <label for="rarity" class="block text-gray-700">Rareté</label>
                             <select name="rarity" id="rarity" class="w-full border-gray-300 rounded-md py-2 px-3">
                                 <option value="">Toutes</option>
-                                <option value="Ultra Rare" {{ request('rarity')=='Ultra Rare' ? 'selected' : '' }}>Ultra Rare</option>
-                                <option value="Secret Rare" {{ request('rarity')=='Secret Rare' ? 'selected' : '' }}>Secret Rare</option>
-                                <option value="Super Rare" {{ request('rarity')=='Super Rare' ? 'selected' : '' }}>Super Rare</option>
-                                <option value="Common" {{ request('rarity')=='Common' ? 'selected' : '' }}>Common</option>
+                                @php
+                                    $rarities = [
+                                        "Common", "Short Print", "Super Short Print", "Rare", "Super Rare",
+                                        "Ultra Rare", "Secret Rare", "Parallel Rare", "Ultimate Rare",
+                                        "Ghost Rare", "Gold Rare", "Premium Gold Rare", "Platinum Rare",
+                                        "Prismatic Secret Rare", "Collector's Rare", "Starlight Rare",
+                                        "Quarter Century Secret Rare", "Starfoil Rare", "Shatterfoil Rare",
+                                        "Duel Terminal Normal Parallel Rare", "Duel Terminal Rare Parallel Rare",
+                                        "Duel Terminal Super Parallel Rare", "Duel Terminal Ultra Parallel Rare",
+                                        "Platinum Secret Rare", "Mosaic Rare", "10000 Secret Rare",
+                                        "Ghost/Gold Rare", "Gold Secret Rare"
+                                    ];
+                                @endphp
+                                @foreach($rarities as $r)
+                                    <option value="{{ $r }}" {{ request('rarity') == $r ? 'selected' : '' }}>
+                                        {{ $r }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
 
-                        <button type="submit"
-                                class="bg-blue-600 hover:bg-blue-700 text-white w-full py-2 rounded mt-4">
-                            Appliquer les filtres
-                        </button>
+                        <!-- Boutons -->
+                        <div class="flex flex-col gap-2 mt-4">
+                            <button type="submit"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white w-full py-2 rounded transition">
+                                Appliquer les filtres
+                            </button>
+                            <a href="{{ route('decks.show', $deck) }}"
+                               class="bg-gray-300 hover:bg-gray-400 text-gray-800 w-full py-2 rounded text-center font-semibold transition">
+                                Réinitialiser les filtres
+                            </a>
+                        </div>
                     </form>
                 </div>
 
-                <!-- Liste des cartes du deck -->
+                <!-- Liste des cartes -->
                 <div class="flex-1 border border-gray-200 rounded-lg p-4">
                     <div class="flex justify-between items-center mb-4">
-                        <form method="GET" class="flex gap-2 w-full max-w-md">
+                        <form method="GET" action="{{ route('decks.show', $deck) }}" class="flex gap-2 w-full max-w-md">
                             <input type="text" name="search" value="{{ request('search') }}"
                                 placeholder="Rechercher une carte..." class="flex-1 border-gray-300 rounded-md py-2 px-4">
+
+                            <!-- garder les filtres actifs -->
+                            <input type="hidden" name="type" value="{{ request('type') }}">
+                            <input type="hidden" name="level" value="{{ request('level') }}">
+                            <input type="hidden" name="atk" value="{{ request('atk') }}">
+                            <input type="hidden" name="def" value="{{ request('def') }}">
+                            <input type="hidden" name="rarity" value="{{ request('rarity') }}">
+
                             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                                 Rechercher
                             </button>
