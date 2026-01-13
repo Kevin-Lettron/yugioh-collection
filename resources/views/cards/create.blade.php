@@ -7,27 +7,18 @@
             
             <h2 class="text-2xl font-bold mb-6">Ajouter une carte Yu-Gi-Oh!</h2>
 
-            {{-- Champ de saisie des codes --}}
-            <div class="mb-4">
-                <label for="card-id" class="block text-gray-700 font-semibold mb-2">
-                    Identifiant de la carte (numéro en bas à gauche)
-                </label>
-                <input type="text" id="card-id"
-                       placeholder="Ex : 46986414"
-                       class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                       required>
-            </div>
-
+            {{-- Champ de saisie du code d'édition --}}
             <div class="mb-4">
                 <label for="card-set" class="block text-gray-700 font-semibold mb-2">
-                    Code d’édition (en bas à droite)
+                    Code d'édition (en bas à droite de l'image)
                 </label>
                 <input type="text" id="card-set"
-                       placeholder="Ex : LDK2-FRY10"
+                       placeholder="Ex : LDK2-FRY10, LOB-001, SDBE-FR001"
                        class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                        required>
                 <p class="text-sm text-gray-500 mt-1">
-                    💡 Le code complet sera généré automatiquement : <code>ID + '-' + CODE</code> (ex : <code>46986414-LDK2-FRY10</code>)
+                    Entrez uniquement le code visible en bas à droite du cadre de l'image de la carte.
+                    Fonctionne avec tous les types de cartes : monstres, magies et pieges.
                 </p>
             </div>
 
@@ -71,18 +62,16 @@
     </div>
 </div>
 
-{{-- Script pour l’appel AJAX --}}
+{{-- Script pour l'appel AJAX --}}
 <script>
 document.getElementById('search-btn').addEventListener('click', async () => {
-    const id = document.getElementById('card-id').value.trim();
-    const set = document.getElementById('card-set').value.trim().toUpperCase();
+    const setCode = document.getElementById('card-set').value.trim().toUpperCase();
 
-    if (!id || !set) {
-        return alert('Veuillez remplir les deux champs : ID et Code d’édition.');
+    if (!setCode) {
+        return alert('Veuillez entrer le code d\'edition de la carte.');
     }
 
-    const combinedCode = `${id}-${set}`; // 🔗 Format combiné
-    console.log('Recherche pour', combinedCode);
+    console.log('Recherche pour', setCode);
 
     const preview = document.getElementById('card-preview');
     const loader = document.getElementById('loading-spinner');
@@ -93,34 +82,34 @@ document.getElementById('search-btn').addEventListener('click', async () => {
     btn.disabled = true;
 
     try {
-        const res = await fetch(`/api/card/${encodeURIComponent(combinedCode)}`);
+        const res = await fetch(`/api/card/${encodeURIComponent(setCode)}`);
         const data = await res.json();
 
         if (!res.ok || data.error) {
-            alert(data.error || "Aucune carte trouvée pour ce code.");
+            alert(data.error || "Aucune carte trouvee pour ce code.");
             loader.classList.add('hidden');
             btn.disabled = false;
             return;
         }
 
-        // Mise à jour de l’aperçu
+        // Mise à jour de l'aperçu
         document.getElementById('card-image').src = data.image ?? '';
         document.getElementById('card-name').textContent = data.name ?? 'Inconnue';
         document.getElementById('card-type').textContent = data.type ?? 'Inconnu';
-        document.getElementById('card-level').textContent = data.level ?? '-';  // Affichage du level
+        document.getElementById('card-level').textContent = data.level ?? '-';
         document.getElementById('card-atk').textContent = data.atk ?? '-';
         document.getElementById('card-def').textContent = data.def ?? '-';
         document.getElementById('card-rarity').textContent = data.rarity ?? 'N/A';
-        document.getElementById('card-price').textContent = data.price ?? '—';
+        document.getElementById('card-price').textContent = data.price ?? '---';
 
-        // Ajouter le level au bouton save
-        document.getElementById('save-btn').setAttribute('data-code', combinedCode);
-        document.getElementById('save-btn').setAttribute('data-level', data.level);  // Envoi du level au bouton save
+        // Stocker le set code pour l'enregistrement
+        document.getElementById('save-btn').setAttribute('data-code', setCode);
+        document.getElementById('save-btn').setAttribute('data-level', data.level);
 
         preview.classList.remove('hidden');
     } catch (e) {
         console.error(e);
-        alert("❌ Erreur lors de la recherche de la carte. Vérifie ta connexion Internet.");
+        alert("Erreur lors de la recherche de la carte. Verifiez votre connexion Internet.");
     } finally {
         loader.classList.add('hidden');
         btn.disabled = false;
@@ -131,9 +120,9 @@ document.getElementById('search-btn').addEventListener('click', async () => {
 // Enregistrement via POST
 document.getElementById('save-btn').addEventListener('click', async (e) => {
     const code = e.target.getAttribute('data-code');
-    const level = e.target.getAttribute('data-level'); // Récupérer le level
+    const level = e.target.getAttribute('data-level');
 
-    if (!code) return alert('Aucune carte à enregistrer.');
+    if (!code) return alert('Aucune carte a enregistrer.');
 
     const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
@@ -143,16 +132,16 @@ document.getElementById('save-btn').addEventListener('click', async (e) => {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': csrf
         },
-        body: JSON.stringify({ codes: code, level: level }) // Ajouter le level dans le corps de la requête
+        body: JSON.stringify({ codes: code, level: level })
     });
 
     if (res.ok) {
-        alert('✅ Carte ajoutée à votre collection !');
+        alert('Carte ajoutee a votre collection !');
         window.location.href = "{{ route('cards.index') }}";
     } else {
         const err = await res.text();
         console.error(err);
-        alert('❌ Erreur lors de l’enregistrement.');
+        alert('Erreur lors de l\'enregistrement.');
     }
 });
 </script>
