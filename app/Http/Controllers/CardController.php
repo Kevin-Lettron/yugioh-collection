@@ -74,7 +74,7 @@ class CardController extends Controller
     }
 
     /**
-     * Enregistre une carte via son identifiant complet (ex : 46986414-LDK2-FRY10)
+     * Enregistre une carte via son code d'édition (ex : LDK2-FRY10, LOB-001)
      */
     public function store(Request $request)
     {
@@ -82,15 +82,9 @@ class CardController extends Controller
             'codes' => 'required|string|max:50',
         ]);
 
-        $code = strtoupper(trim($request->input('codes')));
-        [$card_id, $set_code] = array_pad(explode('-', $code, 2), 2, null);
+        $setCode = strtoupper(trim($request->input('codes')));
 
-        if (!is_numeric($card_id)) {
-            Log::error("Le code {$code} est invalide : ID non numérique.");
-            return back()->withErrors(['codes' => 'Le code doit être du format 46986414-LDK2-FRY10 (ID-SETCODE).']);
-        }
-
-        $result = $this->findCardById($card_id, $set_code);
+        $result = $this->findCardBySetCode($setCode);
 
         if (isset($result['error'])) {
             Log::error("Erreur de recherche de carte : " . $result['error']);
@@ -99,25 +93,26 @@ class CardController extends Controller
 
         $cardData = $result['data'];
         $set = $result['set'];
+        $cardId = $result['card_id'];
 
         try {
-            Log::info("Enregistrement de la carte avec code : {$code} - Nom : {$cardData['name']}");
+            Log::info("Enregistrement de la carte avec set code : {$setCode} - Nom : {$cardData['name']}");
 
             $level = $cardData['level'] ?? null;
 
-            // ✅ Vérifie si la carte existe déjà pour CE user
+            // Vérifie si la carte existe déjà pour CE user (même carte + même édition)
             $card = Card::where('user_id', Auth::id())
-                        ->where('ucard_id', $card_id)
-                        ->where('set_code', $set_code)
+                        ->where('ucard_id', $cardId)
+                        ->where('set_code', $setCode)
                         ->first();
 
             if ($card) {
                 $card->increment('nm_exemplaire');
             } else {
                 $card = Card::create([
-                    'ucard_id'       => $card_id,
-                    'set_code'       => $set_code,
-                    'code'           => "{$card_id}-{$set_code}",
+                    'ucard_id'       => $cardId,
+                    'set_code'       => $setCode,
+                    'code'           => "{$cardId}-{$setCode}",
                     'name'           => $cardData['name'] ?? 'Inconnue',
                     'card_type'      => $cardData['type'] ?? 'Inconnu',
                     'description'    => $cardData['desc'] ?? '',
@@ -135,7 +130,7 @@ class CardController extends Controller
 
             return redirect()
                 ->route('cards.index')
-                ->with('success', "✅ Carte « {$card->name} » ajoutée avec succès !");
+                ->with('success', "Carte « {$card->name} » ajoutée avec succès !");
         } catch (\Exception $e) {
             Log::error("Erreur lors de l'enregistrement de la carte : " . $e->getMessage());
             return back()->withErrors(['codes' => "Erreur d'enregistrement : {$e->getMessage()}"]);
@@ -143,14 +138,14 @@ class CardController extends Controller
     }
 
     /**
-     * API interne pour la recherche AJAX d’une carte.
+     * API interne pour la recherche AJAX d'une carte via son set code (ex: LDK2-FRY10).
      */
     public function apiFindCard($code)
     {
-        [$id, $setCode] = array_pad(explode('-', strtoupper(trim($code)), 2), 2, null);
-        Log::info("Recherche de la carte via API", ['id' => $id, 'setCode' => $setCode]);
+        $setCode = strtoupper(trim($code));
+        Log::info("Recherche de la carte via API", ['setCode' => $setCode]);
 
-        $result = $this->findCardById($id, $setCode);
+        $result = $this->findCardBySetCode($setCode);
 
         if (isset($result['error'])) {
             Log::error("Erreur lors de la recherche de la carte", ['error' => $result['error']]);
@@ -170,47 +165,75 @@ class CardController extends Controller
             'image'       => $card['card_images'][0]['image_url'] ?? null,
             'description' => $card['desc'] ?? null,
             'level'       => $card['level'] ?? null,
+            'set_name'    => $set['set_name'] ?? null,
         ]);
     }
 
     /**
-     * Recherche d’une carte par ID numérique et set code.
+     * Recherche d'une carte par set code uniquement (ex: LDK2-FRY10, LOB-001).
+     * Utilise l'API cardsetsinfo.php pour obtenir l'ID, puis cardinfo.php pour les détails.
      */
-    private function findCardById(string $id, ?string $setCode): array
+    private function findCardBySetCode(string $setCode): array
     {
         try {
-            $cacheKey = "ygoprodeck_card_{$id}_{$setCode}";
-            $cardData = Cache::remember($cacheKey, 86400, function () use ($id, $setCode) {
-                Log::info("Appel API pour obtenir les données de la carte", ['id' => $id, 'setCode' => $setCode]);
-                $response = Http::get("https://db.ygoprodeck.com/api/v7/cardinfo.php", ['id' => $id]);
+            $setCode = strtoupper(trim($setCode));
+            $cacheKey = "ygoprodeck_setcode_{$setCode}";
 
-                if ($response->failed() || !isset($response['data'][0])) {
-                    Log::error("L'API a échoué ou aucune carte trouvée", ['response' => $response->json()]);
+            $result = Cache::remember($cacheKey, 86400, function () use ($setCode) {
+                Log::info("Appel API cardsetsinfo pour obtenir l'ID de la carte", ['setCode' => $setCode]);
+
+                // Étape 1: Obtenir l'ID de la carte via le set code
+                $setInfoResponse = Http::get("https://db.ygoprodeck.com/api/v7/cardsetsinfo.php", ['setcode' => $setCode]);
+
+                if ($setInfoResponse->failed()) {
+                    Log::error("L'API cardsetsinfo a échoué", ['response' => $setInfoResponse->json()]);
                     return null;
                 }
 
-                return $response['data'][0];
+                $setInfo = $setInfoResponse->json();
+
+                if (!isset($setInfo['id'])) {
+                    Log::error("Aucune carte trouvée pour ce set code", ['setCode' => $setCode]);
+                    return null;
+                }
+
+                $cardId = $setInfo['id'];
+                Log::info("ID de carte trouvé", ['cardId' => $cardId, 'cardName' => $setInfo['name'] ?? 'Unknown']);
+
+                // Étape 2: Obtenir les détails complets de la carte
+                $cardInfoResponse = Http::get("https://db.ygoprodeck.com/api/v7/cardinfo.php", ['id' => $cardId]);
+
+                if ($cardInfoResponse->failed() || !isset($cardInfoResponse['data'][0])) {
+                    Log::error("L'API cardinfo a échoué", ['response' => $cardInfoResponse->json()]);
+                    return null;
+                }
+
+                return [
+                    'cardData' => $cardInfoResponse['data'][0],
+                    'setInfo' => $setInfo
+                ];
             });
 
-            if (!$cardData) {
-                return ['error' => "Aucune carte trouvée pour l’ID {$id}."];
+            if (!$result) {
+                return ['error' => "Aucune carte trouvée pour le code « {$setCode} ». Vérifiez le format (ex: LDK2-FRY10, LOB-001)."];
             }
 
-            $set = null;
-            if ($setCode && isset($cardData['card_sets'])) {
-                foreach ($cardData['card_sets'] as $s) {
-                    if (strtoupper($s['set_code']) === strtoupper($setCode)) {
-                        $set = $s;
-                        break;
-                    }
-                }
-            }
+            $cardData = $result['cardData'];
+            $setInfo = $result['setInfo'];
 
-            if (!$set && isset($cardData['card_sets'][0])) {
-                $set = $cardData['card_sets'][0];
-            }
+            // Construire les infos du set
+            $set = [
+                'set_code' => $setInfo['set_code'] ?? $setCode,
+                'set_name' => $setInfo['set_name'] ?? null,
+                'set_rarity' => $setInfo['set_rarity'] ?? null,
+                'set_price' => $setInfo['set_price'] ?? null,
+            ];
 
-            return ['data' => $cardData, 'set' => $set ?? ['set_code' => 'UNKNOWN']];
+            return [
+                'data' => $cardData,
+                'set' => $set,
+                'card_id' => $setInfo['id']
+            ];
         } catch (\Exception $e) {
             Log::error("Erreur lors de la recherche de la carte", ['error' => $e->getMessage()]);
             return ['error' => 'Erreur lors de la recherche de la carte : ' . $e->getMessage()];
